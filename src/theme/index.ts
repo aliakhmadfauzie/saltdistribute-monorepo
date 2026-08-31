@@ -59,6 +59,8 @@ export const colors = {
   muted: "#707973",
   cardBg: "#FFFFFF",
   overlay: "rgba(15, 23, 42, 0.6)",
+  textPrimary: "#191C1A",
+  textSecondary: "#3F4943",
 } as const;
 
 export const spacing = {
@@ -84,6 +86,7 @@ export const radius = {
 export const type = {
   xs: 12,
   sm: 13,
+  md: 15,
   base: 15,
   lg: 17,
   xl: 20,

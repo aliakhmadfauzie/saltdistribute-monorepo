@@ -56,6 +56,25 @@ export type BookingStatus =
   | "CANCELLED_UNPAID"
   | "REJECTED_BY_ADMIN";
 
+export interface LiveBuyerLocation {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  altitudeMeters?: number | null;
+  speedKmh?: number | null;
+  headingDegrees?: number | null;
+  updatedAt: string;
+  isSharing: boolean;
+  isMockLocation?: boolean;
+}
+
+export type ProximityState =
+  | "AT_MEETING_POINT"
+  | "APPROACHING"
+  | "IN_TRANSIT"
+  | "STATIONARY"
+  | "OFFLINE";
+
 export interface Booking {
   bookingId: string;
   buyerId: string;
@@ -76,6 +95,8 @@ export interface Booking {
   meetingPointName?: string;
   estimatedDistanceKm?: number;
   estimatedMinutes?: number;
+  liveLocation?: LiveBuyerLocation;
+  isLocationSharingEnabled?: boolean;
   status: BookingStatus;
   rejectionReason?: string;
   paymentProofUrl?: string;

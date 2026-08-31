@@ -7,6 +7,7 @@ import { useI18n } from "../i18n";
 import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
 import WhatsAppButton from "./WhatsAppButton";
 import GoogleDeliveryMapModal from "./GoogleDeliveryMapModal";
+import AdminLiveRadarModal from "./AdminLiveRadarModal";
 
 interface BookingCardProps {
   booking: Booking;
@@ -32,6 +33,7 @@ export default function BookingCard({
   const { t } = useI18n();
   const [isCopied, setIsCopied] = useState(false);
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
+  const [isRadarModalVisible, setIsRadarModalVisible] = useState(false);
 
   const handleCopyBookingId = () => {
     setIsCopied(true);
@@ -194,6 +196,27 @@ export default function BookingCard({
           </Text>
           <MaterialCommunityIcons name="chevron-right" size={16} color={colors.brandPrimary} />
         </Pressable>
+
+        {/* Seller-Exclusive Live Buyer GPS Radar Action */}
+        {isAdmin && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Seller-Exclusive Live Buyer Radar"
+            style={({ pressed }) => [styles.liveRadarBtn, pressed && { opacity: 0.9 }]}
+            onPress={() => setIsRadarModalVisible(true)}
+          >
+            <View style={styles.liveRadarLeft}>
+              <View style={styles.radarPulseDot} />
+              <MaterialCommunityIcons name="radar" size={16} color={colors.onBrandPrimary} />
+              <Text style={styles.liveRadarBtnText}>
+                {booking.liveLocation?.isSharing
+                  ? `Live Buyer GPS Active (±${booking.liveLocation.accuracyMeters}m)`
+                  : "Live Buyer Radar & Spatial GPS"}
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.onBrandPrimary} />
+          </Pressable>
+        )}
       </View>
 
       {/* Buyer Information (Admin View) */}
@@ -391,11 +414,50 @@ export default function BookingCard({
         deliveryAddress={booking.deliveryAddress}
         deliveryFee={booking.deliveryFee}
       />
+
+      {/* Seller-Exclusive Live Buyer GPS Radar Modal */}
+      {isAdmin && (
+        <AdminLiveRadarModal
+          visible={isRadarModalVisible}
+          booking={booking}
+          onClose={() => setIsRadarModalVisible(false)}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  liveRadarBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#0284C7", // Sky blue for live GPS radar
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#0369A1",
+    ...shadows.sm,
+  },
+  liveRadarLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  radarPulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#38BDF8",
+  },
+  liveRadarBtnText: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onBrandPrimary,
+  },
   card: {
     backgroundColor: colors.cardBg,
     borderRadius: radius.md,

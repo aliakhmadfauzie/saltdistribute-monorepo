@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, StyleSheet, Pressable, Switch, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -13,17 +13,19 @@ import ProofUploadModal from "../../src/components/ProofUploadModal";
 import ChatModal from "../../src/components/ChatModal";
 import LangToggle from "../../src/components/LangToggle";
 import { Booking } from "../../src/types";
+import { getDeviceCurrentLocation } from "../../src/services/locationService";
 
 export default function BuyerOrdersScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { bookings, uploadPaymentProof } = useApp();
+  const { bookings, uploadPaymentProof, updateBuyerLiveLocation, toggleLocationSharing } = useApp();
   const { currentUser } = useAuth();
   const { t } = useI18n();
 
   const [activeTab, setActiveTab] = useState<"ACTIVE" | "PAST">("ACTIVE");
   const [selectedProofBooking, setSelectedProofBooking] = useState<Booking | null>(null);
   const [selectedChatBooking, setSelectedChatBooking] = useState<Booking | null>(null);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
 
   const myBookings = bookings.filter((b) => b.buyerId === currentUser?.userId);
 
@@ -43,6 +45,27 @@ export default function BuyerOrdersScreen() {
   );
 
   const displayedList = activeTab === "ACTIVE" ? activeBookings : pastBookings;
+  const primaryActiveBooking = activeBookings[0];
+
+  const handleToggleGpsBroadcast = async (enable: boolean) => {
+    if (!primaryActiveBooking) return;
+    if (enable) {
+      setIsCapturingLocation(true);
+      try {
+        const loc = await getDeviceCurrentLocation();
+        if (loc) {
+          await updateBuyerLiveLocation(primaryActiveBooking.bookingId, loc);
+          Alert.alert("GPS Active", "Your device location is now live and visible to the dispatcher.");
+        }
+      } catch (err: any) {
+        Alert.alert("Location Error", err?.message || "Failed to acquire device location.");
+      } finally {
+        setIsCapturingLocation(false);
+      }
+    } else {
+      await toggleLocationSharing(primaryActiveBooking.bookingId, false);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -91,6 +114,42 @@ export default function BuyerOrdersScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Live GPS Dispatch Telemetry Card for Active Orders */}
+        {activeTab === "ACTIVE" && primaryActiveBooking && (
+          <View style={styles.gpsCard}>
+            <View style={styles.gpsCardTop}>
+              <View style={styles.gpsIconBox}>
+                <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.brandPrimary} />
+              </View>
+              <View style={styles.gpsInfo}>
+                <Text style={styles.gpsTitle}>{t("shareLocationTitle")}</Text>
+                <Text style={styles.gpsSub}>{t("shareLocationSubtitle")}</Text>
+              </View>
+              {isCapturingLocation ? (
+                <ActivityIndicator size="small" color={colors.brandPrimary} />
+              ) : (
+                <Switch
+                  accessibilityRole="switch"
+                  accessibilityLabel={t("shareLocationToggle")}
+                  value={primaryActiveBooking.liveLocation?.isSharing || false}
+                  onValueChange={handleToggleGpsBroadcast}
+                  trackColor={{ false: colors.border, true: colors.brandPrimary }}
+                  thumbColor={colors.surface}
+                />
+              )}
+            </View>
+
+            {primaryActiveBooking.liveLocation?.isSharing ? (
+              <View style={styles.gpsActiveBadge}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.gpsActiveText}>
+                  {t("locationGranted")} &bull; ±{primaryActiveBooking.liveLocation.accuracyMeters}m accuracy
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
         {displayedList.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconCircle}>
@@ -242,5 +301,62 @@ const styles = StyleSheet.create({
     color: colors.onBrandPrimary,
     fontSize: type.sm,
     fontWeight: "800",
+  },
+  gpsCard: {
+    backgroundColor: colors.cardBg,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.brandPrimaryContainer,
+    gap: spacing.sm,
+    ...shadows.sm,
+  },
+  gpsCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  gpsIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.xs,
+    backgroundColor: colors.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gpsInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  gpsTitle: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onSurface,
+  },
+  gpsSub: {
+    fontSize: type.xs - 2,
+    color: colors.onSurfaceSecondary,
+    lineHeight: 14,
+  },
+  gpsActiveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.xs,
+    alignSelf: "flex-start",
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.brandPrimary,
+  },
+  gpsActiveText: {
+    fontSize: type.xs - 2,
+    fontWeight: "800",
+    color: colors.onBrandTertiary,
   },
 });

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Inventory, Booking, BookingStatus, RestockLog, ChatMessage, UnitTier } from "../types";
+import { Inventory, Booking, BookingStatus, RestockLog, ChatMessage, UnitTier, LiveBuyerLocation } from "../types";
 
 const INVENTORY_STORAGE_KEY = "@saltdistribute_inventory_v3";
 const BOOKINGS_STORAGE_KEY = "@saltdistribute_bookings_v3";
@@ -189,12 +189,15 @@ interface AppContextType {
   verifyPayment: (bookingId: string) => void;
   markCompleted: (bookingId: string) => void;
   sendMessage: (bookingId: string, senderId: string, senderName: string, senderRole: "buyer" | "admin", text: string) => void;
+  updateBuyerLiveLocation: (bookingId: string, location: LiveBuyerLocation) => Promise<void>;
+  toggleLocationSharing: (bookingId: string, enabled: boolean) => Promise<void>;
   financialMetrics: {
     totalRevenue: number;
     totalCOGS: number;
     grossProfit: number;
     completedCount: number;
     activeCount: number;
+    averageCostPerGram?: number;
   };
   exportSalesCSV: () => string;
 }
@@ -214,6 +217,8 @@ const AppContext = createContext<AppContextType>({
   verifyPayment: () => {},
   markCompleted: () => {},
   sendMessage: () => {},
+  updateBuyerLiveLocation: async () => {},
+  toggleLocationSharing: async () => {},
   financialMetrics: { totalRevenue: 0, totalCOGS: 0, grossProfit: 0, completedCount: 0, activeCount: 0 },
   exportSalesCSV: () => "",
 });
@@ -420,6 +425,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveChats(updatedChats);
   };
 
+  const updateBuyerLiveLocation = async (bookingId: string, location: LiveBuyerLocation) => {
+    const updated = bookings.map((b) =>
+      b.bookingId === bookingId
+        ? {
+            ...b,
+            liveLocation: location,
+            isLocationSharingEnabled: location.isSharing,
+            updatedAt: new Date().toISOString(),
+          }
+        : b
+    );
+    await saveBookings(updated);
+  };
+
+  const toggleLocationSharing = async (bookingId: string, enabled: boolean) => {
+    const updated = bookings.map((b) =>
+      b.bookingId === bookingId
+        ? {
+            ...b,
+            isLocationSharingEnabled: enabled,
+            liveLocation: b.liveLocation ? { ...b.liveLocation, isSharing: enabled } : undefined,
+            updatedAt: new Date().toISOString(),
+          }
+        : b
+    );
+    await saveBookings(updated);
+  };
+
   // Financial Metrics
   const financialMetrics = useMemo(() => {
     const completedBookings = bookings.filter((b) => b.status === "COMPLETED");
@@ -444,6 +477,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       grossProfit,
       completedCount: completedBookings.length,
       activeCount: activeBookings.length,
+      averageCostPerGram: avgCostPerGram,
     };
   }, [bookings, restockLogs]);
 
@@ -475,6 +509,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         verifyPayment,
         markCompleted,
         sendMessage,
+        updateBuyerLiveLocation,
+        toggleLocationSharing,
         financialMetrics,
         exportSalesCSV,
       }}
