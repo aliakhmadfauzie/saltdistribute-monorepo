@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   ImageBackground,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +30,10 @@ const MAX_GRAM_LIMIT = 5.0; // Hard max 5.0 grams per transaction
 
 export default function BuyerDashboardScreen() {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const isSmallScreen = windowWidth < 380;
+  const isDesktop = windowWidth >= 768;
+
   const router = useRouter();
   const { inventory, createBooking, bookings } = useApp();
   const { currentUser, switchUser } = useAuth();
@@ -193,7 +198,7 @@ export default function BuyerDashboardScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Edge-to-Edge Gradient Header */}
+      {/* Edge-to-Edge Fluid Gradient Header */}
       <LinearGradient
         colors={[colors.brandPrimary, "#004D36"]}
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
@@ -202,16 +207,21 @@ export default function BuyerDashboardScreen() {
           <View style={styles.headerInfo}>
             <View style={styles.badgeRow}>
               <View style={styles.verifiedBadge}>
-                <MaterialCommunityIcons name="check-decagram" size={14} color={colors.onBrandPrimary} />
+                <MaterialCommunityIcons name="check-decagram" size={13} color={colors.onBrandPrimary} />
                 <Text style={styles.verifiedBadgeText}>VERIFIED BUYER</Text>
               </View>
               <View style={styles.maxCapBadge}>
-                <Text style={styles.maxCapBadgeText}>MAX 5.0 GRAM</Text>
+                <Text style={styles.maxCapBadgeText}>MAX 5.0G</Text>
               </View>
             </View>
-            <Text style={styles.welcomeText}>Hello, {currentUser?.name || "Buyer"}</Text>
-            <Text style={styles.companyText}>{currentUser?.companyName || "Direct Wholesale Client"}</Text>
+            <Text style={[styles.welcomeText, isSmallScreen && { fontSize: type.lg }]} numberOfLines={1}>
+              Hello, {currentUser?.name || "Buyer"}
+            </Text>
+            <Text style={styles.companyText} numberOfLines={1}>
+              {currentUser?.companyName || "Direct Wholesale Client"}
+            </Text>
           </View>
+
           <View style={styles.headerRightActions}>
             <Pressable
               accessibilityRole="button"
@@ -222,8 +232,8 @@ export default function BuyerDashboardScreen() {
                 router.replace("/(admin)");
               }}
             >
-              <MaterialCommunityIcons name="shield-crown" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.switchRoleBtnText}>Admin View →</Text>
+              <MaterialCommunityIcons name="shield-crown" size={15} color={colors.onBrandPrimary} />
+              <Text style={styles.switchRoleBtnText}>Admin →</Text>
             </Pressable>
             <LangToggle />
           </View>
@@ -249,7 +259,7 @@ export default function BuyerDashboardScreen() {
               <Text style={styles.activeOrderId}>#{activeOrder.bookingId}</Text>
             </View>
 
-            <Text style={styles.activeOrderDesc}>
+            <Text style={styles.activeOrderDesc} numberOfLines={2}>
               {activeOrder.packageLabel} &bull; {formatIDR(activeOrder.grandTotal)} &bull; {activeOrder.deliveryType}
             </Text>
 
@@ -264,7 +274,7 @@ export default function BuyerDashboardScreen() {
                 >
                   <MaterialCommunityIcons
                     name={currentStage > 1 ? "check" : "circle-small"}
-                    size={16}
+                    size={14}
                     color={currentStage >= 1 ? colors.onBrandPrimary : colors.muted}
                   />
                 </View>
@@ -289,7 +299,7 @@ export default function BuyerDashboardScreen() {
                 >
                   <MaterialCommunityIcons
                     name={currentStage > 2 ? "check" : "circle-small"}
-                    size={16}
+                    size={14}
                     color={currentStage >= 2 ? colors.onBrandPrimary : colors.muted}
                   />
                 </View>
@@ -314,7 +324,7 @@ export default function BuyerDashboardScreen() {
                 >
                   <MaterialCommunityIcons
                     name={currentStage > 3 ? "check" : "circle-small"}
-                    size={16}
+                    size={14}
                     color={currentStage >= 3 ? colors.onBrandPrimary : colors.muted}
                   />
                 </View>
@@ -339,7 +349,7 @@ export default function BuyerDashboardScreen() {
                 >
                   <MaterialCommunityIcons
                     name="flag-checkered"
-                    size={14}
+                    size={12}
                     color={currentStage >= 4 ? colors.onBrandPrimary : colors.muted}
                   />
                 </View>
@@ -376,13 +386,13 @@ export default function BuyerDashboardScreen() {
             imageStyle={styles.productHeroImageStyle}
           >
             <LinearGradient
-              colors={["rgba(0,0,0,0.15)", "rgba(0,40,25,0.88)"]}
+              colors={["rgba(0,0,0,0.15)", "rgba(0,40,25,0.92)"]}
               style={styles.productHeroGradient}
             >
               <View style={styles.heroTopBadges}>
                 <View style={styles.heroPurityBadge}>
-                  <MaterialCommunityIcons name="shield-check" size={16} color="#FFFFFF" />
-                  <Text style={styles.heroPurityText}>NaCl 99.2% LAB CERTIFIED</Text>
+                  <MaterialCommunityIcons name="shield-check" size={14} color="#FFFFFF" />
+                  <Text style={styles.heroPurityText}>NaCl 99.2% PURITY</Text>
                 </View>
                 <View style={styles.heroRateBadge}>
                   <Text style={styles.heroRateText}>Rp 800.000 / g</Text>
@@ -390,21 +400,23 @@ export default function BuyerDashboardScreen() {
               </View>
 
               <View style={styles.heroBottomContent}>
-                <Text style={styles.heroTitle}>{inventory.productName}</Text>
+                <Text style={[styles.heroTitle, isSmallScreen && { fontSize: type.lg }]}>
+                  {inventory.productName}
+                </Text>
                 <Text style={styles.heroSubtitle}>
-                  Ultra-pure pharmaceutical refinery crystals with double-centrifuged moisture control (&lt;0.15%).
+                  Ultra-pure pharmaceutical crystals with double-centrifuged moisture control (&lt;0.15%).
                 </Text>
                 <View style={styles.heroSpecsRow}>
                   <View style={styles.heroSpecPill}>
-                    <MaterialCommunityIcons name="scale-bathroom" size={13} color={colors.brandTertiary} />
+                    <MaterialCommunityIcons name="scale-bathroom" size={12} color={colors.brandTertiary} />
                     <Text style={styles.heroSpecPillText}>0.1g - 5.0g Max</Text>
                   </View>
                   <View style={styles.heroSpecPill}>
-                    <MaterialCommunityIcons name="certificate" size={13} color={colors.brandTertiary} />
-                    <Text style={styles.heroSpecPillText}>ISO 9001 / Halal</Text>
+                    <MaterialCommunityIcons name="certificate" size={12} color={colors.brandTertiary} />
+                    <Text style={styles.heroSpecPillText}>ISO / Halal</Text>
                   </View>
                   <View style={styles.heroSpecPill}>
-                    <MaterialCommunityIcons name="truck-fast" size={13} color={colors.brandTertiary} />
+                    <MaterialCommunityIcons name="truck-fast" size={12} color={colors.brandTertiary} />
                     <Text style={styles.heroSpecPillText}>Instant Dispatch</Text>
                   </View>
                 </View>
@@ -416,7 +428,7 @@ export default function BuyerDashboardScreen() {
         {/* Flexible Purchasing Mode Selector */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <MaterialCommunityIcons name="tune-variant" size={22} color={colors.brandPrimary} />
+            <MaterialCommunityIcons name="tune-variant" size={20} color={colors.brandPrimary} />
             <Text style={styles.sectionTitle}>Choose How You Want to Buy</Text>
           </View>
 
@@ -430,11 +442,18 @@ export default function BuyerDashboardScreen() {
             >
               <MaterialCommunityIcons
                 name="package-variant-closed"
-                size={18}
+                size={16}
                 color={purchaseMode === "TIER" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
-              <Text style={[styles.modeTabText, purchaseMode === "TIER" && styles.modeTabTextActive]}>
-                Package Tiers
+              <Text
+                style={[
+                  styles.modeTabText,
+                  purchaseMode === "TIER" && styles.modeTabTextActive,
+                  isSmallScreen && { fontSize: type.xs - 2 },
+                ]}
+                numberOfLines={1}
+              >
+                Packages
               </Text>
             </Pressable>
 
@@ -446,10 +465,17 @@ export default function BuyerDashboardScreen() {
             >
               <MaterialCommunityIcons
                 name="scale"
-                size={18}
+                size={16}
                 color={purchaseMode === "CUSTOM_GRAMS" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
-              <Text style={[styles.modeTabText, purchaseMode === "CUSTOM_GRAMS" && styles.modeTabTextActive]}>
+              <Text
+                style={[
+                  styles.modeTabText,
+                  purchaseMode === "CUSTOM_GRAMS" && styles.modeTabTextActive,
+                  isSmallScreen && { fontSize: type.xs - 2 },
+                ]}
+                numberOfLines={1}
+              >
                 By Grams
               </Text>
             </Pressable>
@@ -462,10 +488,17 @@ export default function BuyerDashboardScreen() {
             >
               <MaterialCommunityIcons
                 name="cash-multiple"
-                size={18}
+                size={16}
                 color={purchaseMode === "BY_BUDGET" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
-              <Text style={[styles.modeTabText, purchaseMode === "BY_BUDGET" && styles.modeTabTextActive]}>
+              <Text
+                style={[
+                  styles.modeTabText,
+                  purchaseMode === "BY_BUDGET" && styles.modeTabTextActive,
+                  isSmallScreen && { fontSize: type.xs - 2 },
+                ]}
+                numberOfLines={1}
+              >
                 By Budget
               </Text>
             </Pressable>
@@ -486,78 +519,80 @@ export default function BuyerDashboardScreen() {
             <View style={styles.customCard}>
               <Text style={styles.customCardHeading}>Specify Gram Quantity (Max 5.0 g)</Text>
               
-              <View style={styles.gramControlRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Decrease 0.5 gram"
-                  style={styles.adjustBtn}
-                  onPress={() => handleAdjustCustomGrams(-0.5)}
-                >
-                  <Text style={styles.adjustBtnText}>-0.5g</Text>
-                </Pressable>
-                
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Decrease 0.1 gram"
-                  style={styles.adjustBtn}
-                  onPress={() => handleAdjustCustomGrams(-0.1)}
-                >
-                  <Text style={styles.adjustBtnText}>-0.1g</Text>
-                </Pressable>
+              <View style={styles.gramStepperContainer}>
+                <View style={styles.stepperMainRow}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease 0.5 gram"
+                    style={styles.stepCircleBtn}
+                    onPress={() => handleAdjustCustomGrams(-0.5)}
+                  >
+                    <Text style={styles.stepCircleBtnText}>-0.5</Text>
+                  </Pressable>
 
-                <View style={styles.gramInputWrapper}>
-                  <TextInput
-                    style={styles.gramInput}
-                    value={customGramInput}
-                    onChangeText={setCustomGramInput}
-                    keyboardType="decimal-pad"
-                    placeholder="1.0"
-                    placeholderTextColor={colors.muted}
-                  />
-                  <Text style={styles.gramInputSuffix}>grams</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease 0.1 gram"
+                    style={styles.stepCircleBtnSmall}
+                    onPress={() => handleAdjustCustomGrams(-0.1)}
+                  >
+                    <Text style={styles.stepCircleBtnSmallText}>-0.1</Text>
+                  </Pressable>
+
+                  <View style={styles.gramDisplayWrapper}>
+                    <TextInput
+                      style={styles.gramInputLarge}
+                      value={customGramInput}
+                      onChangeText={setCustomGramInput}
+                      keyboardType="decimal-pad"
+                      placeholder="1.0"
+                      placeholderTextColor={colors.muted}
+                    />
+                    <Text style={styles.gramDisplayUnit}>grams</Text>
+                  </View>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase 0.1 gram"
+                    style={styles.stepCircleBtnSmall}
+                    onPress={() => handleAdjustCustomGrams(0.1)}
+                  >
+                    <Text style={styles.stepCircleBtnSmallText}>+0.1</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase 0.5 gram"
+                    style={styles.stepCircleBtn}
+                    onPress={() => handleAdjustCustomGrams(0.5)}
+                  >
+                    <Text style={styles.stepCircleBtnText}>+0.5</Text>
+                  </Pressable>
                 </View>
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Increase 0.1 gram"
-                  style={styles.adjustBtn}
-                  onPress={() => handleAdjustCustomGrams(0.1)}
-                >
-                  <Text style={styles.adjustBtnText}>+0.1g</Text>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Increase 0.5 gram"
-                  style={styles.adjustBtn}
-                  onPress={() => handleAdjustCustomGrams(0.5)}
-                >
-                  <Text style={styles.adjustBtnText}>+0.5g</Text>
-                </Pressable>
-              </View>
-
-              {/* Quick Gram Presets */}
-              <View style={styles.quickChipsRow}>
-                {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map((gm) => (
-                  <Pressable
-                    key={gm}
-                    accessibilityRole="button"
-                    style={[
-                      styles.quickChip,
-                      parseFloat(customGramInput) === gm && styles.quickChipActive,
-                    ]}
-                    onPress={() => setCustomGramInput(gm.toString())}
-                  >
-                    <Text
+                {/* Quick Gram Presets */}
+                <View style={styles.quickChipsRow}>
+                  {[0.5, 1.0, 1.5, 2.0, 3.0, 5.0].map((gm) => (
+                    <Pressable
+                      key={gm}
+                      accessibilityRole="button"
                       style={[
-                        styles.quickChipText,
-                        parseFloat(customGramInput) === gm && styles.quickChipTextActive,
+                        styles.quickChip,
+                        parseFloat(customGramInput) === gm && styles.quickChipActive,
                       ]}
+                      onPress={() => setCustomGramInput(gm.toString())}
                     >
-                      {gm}g
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text
+                        style={[
+                          styles.quickChipText,
+                          parseFloat(customGramInput) === gm && styles.quickChipTextActive,
+                        ]}
+                      >
+                        {gm}g
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
 
               <View style={styles.convertedInfoBox}>
@@ -574,7 +609,7 @@ export default function BuyerDashboardScreen() {
             <View style={styles.customCard}>
               <Text style={styles.customCardHeading}>Specify Your Purchase Budget (IDR)</Text>
               <Text style={styles.customCardSub}>
-                Enter the amount you wish to spend. We calculate the exact grams of salt based on Rp 800.000 / gram.
+                Calculated at Rp 800.000 / gram for certified 99.2% pure salt.
               </Text>
 
               <View style={styles.budgetInputWrapper}>
@@ -596,7 +631,7 @@ export default function BuyerDashboardScreen() {
                   { label: "Rp 800k (1.0g)", val: 800000 },
                   { label: "Rp 1.6M (2.0g)", val: 1600000 },
                   { label: "Rp 2.4M (3.0g)", val: 2400000 },
-                  { label: "Rp 4.0M (5.0g Max)", val: 4000000 },
+                  { label: "Rp 4.0M (5.0g)", val: 4000000 },
                 ].map((item, idx) => (
                   <Pressable
                     key={idx}
@@ -620,9 +655,9 @@ export default function BuyerDashboardScreen() {
               </View>
 
               <View style={styles.convertedInfoBox}>
-                <MaterialCommunityIcons name="calculator-variant" size={20} color={colors.brandPrimary} />
+                <MaterialCommunityIcons name="calculator-variant" size={18} color={colors.brandPrimary} />
                 <Text style={styles.convertedInfoText}>
-                  You receive: <Text style={styles.convertedInfoBold}>{effectiveGrams} grams</Text> of Pure Salt (NaCl 99.2%)
+                  You receive: <Text style={styles.convertedInfoBold}>{effectiveGrams} grams</Text> of Pure Salt
                 </Text>
               </View>
             </View>
@@ -632,7 +667,7 @@ export default function BuyerDashboardScreen() {
         {/* Fulfillment Method Selection */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <MaterialCommunityIcons name="truck-delivery-outline" size={22} color={colors.brandPrimary} />
+            <MaterialCommunityIcons name="truck-delivery-outline" size={20} color={colors.brandPrimary} />
             <Text style={styles.sectionTitle}>{t("deliveryMethod")}</Text>
           </View>
 
@@ -648,14 +683,16 @@ export default function BuyerDashboardScreen() {
             >
               <MaterialCommunityIcons
                 name="truck-delivery"
-                size={22}
+                size={20}
                 color={deliveryType === "DELIVERY" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
               <Text
                 style={[
                   styles.deliveryToggleText,
                   deliveryType === "DELIVERY" && styles.deliveryToggleTextActive,
+                  isSmallScreen && { fontSize: type.xs },
                 ]}
+                numberOfLines={1}
               >
                 {t("dispatchDelivery")}
               </Text>
@@ -672,14 +709,16 @@ export default function BuyerDashboardScreen() {
             >
               <MaterialCommunityIcons
                 name="handshake-outline"
-                size={22}
+                size={20}
                 color={deliveryType === "COD" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
               <Text
                 style={[
                   styles.deliveryToggleText,
                   deliveryType === "COD" && styles.deliveryToggleTextActive,
+                  isSmallScreen && { fontSize: type.xs },
                 ]}
+                numberOfLines={1}
               >
                 {t("selfPickupCOD")}
               </Text>
@@ -697,8 +736,8 @@ export default function BuyerDashboardScreen() {
                   style={styles.mapInspectBtn}
                   onPress={() => setIsMapModalVisible(true)}
                 >
-                  <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
-                  <Text style={styles.mapInspectBtnText}>View on Map</Text>
+                  <MaterialCommunityIcons name="google-maps" size={14} color={colors.brandPrimary} />
+                  <Text style={styles.mapInspectBtnText}>View Map</Text>
                 </Pressable>
               </View>
 
@@ -720,12 +759,12 @@ export default function BuyerDashboardScreen() {
                           </Text>
                           {mp.isPopular && (
                             <View style={styles.mpBadge}>
-                              <Text style={styles.mpBadgeText}>RECOMMENDED</Text>
+                              <Text style={styles.mpBadgeText}>POPULAR</Text>
                             </View>
                           )}
                         </View>
-                        <Text style={styles.mpAddress}>{mp.address}</Text>
-                        <Text style={styles.mpSecurity}>🛡️ {mp.securityNote} &bull; {mp.operatingHours}</Text>
+                        <Text style={styles.mpAddress} numberOfLines={2}>{mp.address}</Text>
+                        <Text style={styles.mpSecurity} numberOfLines={1}>🛡️ {mp.securityNote}</Text>
                       </View>
 
                       <View style={styles.mpDistanceBadge}>
@@ -750,8 +789,8 @@ export default function BuyerDashboardScreen() {
                   style={styles.mapInspectBtn}
                   onPress={() => setIsMapModalVisible(true)}
                 >
-                  <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
-                  <Text style={styles.mapInspectBtnText}>Inspect Route & ETA</Text>
+                  <MaterialCommunityIcons name="google-maps" size={14} color={colors.brandPrimary} />
+                  <Text style={styles.mapInspectBtnText}>Route & ETA</Text>
                 </Pressable>
               </View>
 
@@ -825,9 +864,9 @@ export default function BuyerDashboardScreen() {
           )}
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryText}>
+            <Text style={[styles.summaryText, { flex: 1, marginRight: 8 }]} numberOfLines={1}>
               {deliveryType === "COD"
-                ? `COD Pickup (${selectedMeetingPoint.name})`
+                ? `COD (${selectedMeetingPoint.name})`
                 : `Delivery (${selectedZone})`}
             </Text>
             <Text style={styles.summaryValue}>
@@ -838,15 +877,17 @@ export default function BuyerDashboardScreen() {
           <View style={styles.summaryDivider} />
 
           <View style={styles.totalRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.totalLabel}>{t("grandTotal")}</Text>
-              <Text style={styles.totalSub}>For {effectiveGrams}g Pure Salt</Text>
+              <Text style={styles.totalSub}>For {effectiveGrams}g Pure Salt (NaCl 99.2%)</Text>
             </View>
-            <Text style={styles.totalAmount}>{formatIDR(grandTotal)}</Text>
+            <Text style={[styles.totalAmount, isSmallScreen && { fontSize: type.xl }]}>
+              {formatIDR(grandTotal)}
+            </Text>
           </View>
         </View>
 
-        {/* Submit Booking CTA Button */}
+        {/* Inline Order CTA (inside scroll view) */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("placeOrder")}
@@ -870,7 +911,7 @@ export default function BuyerDashboardScreen() {
               />
               <Text style={styles.submitBtnText}>
                 {isStockAvailable
-                  ? `Order ${effectiveGrams}g (${formatIDR(grandTotal)})`
+                  ? `Place Order (${formatIDR(grandTotal)})`
                   : effectiveGrams > MAX_GRAM_LIMIT
                   ? "Exceeds 5.0g Max Limit"
                   : t("outOfStock")}
@@ -879,6 +920,40 @@ export default function BuyerDashboardScreen() {
           )}
         </Pressable>
       </ScrollView>
+
+      {/* Persistent Sticky Floating Bottom Checkout Bar (Always Visible!) */}
+      <View style={[styles.stickyBottomBar, { paddingBottom: Math.max(12, insets.bottom) }]}>
+        <View style={styles.stickyBarInner}>
+          <View style={styles.stickyPriceGroup}>
+            <Text style={styles.stickyPriceLabel}>Total Amount</Text>
+            <Text style={styles.stickyPriceValue}>{formatIDR(grandTotal)}</Text>
+            <Text style={styles.stickyPriceSub}>{effectiveGrams}g &bull; {deliveryType}</Text>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("placeOrder")}
+            accessibilityState={{ disabled: !isStockAvailable || isSubmitting }}
+            style={({ pressed }) => [
+              styles.stickySubmitBtn,
+              !isStockAvailable && styles.submitBtnDisabled,
+              pressed && isStockAvailable && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+            ]}
+            onPress={handleSubmitOrder}
+            disabled={!isStockAvailable || isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color={colors.onBrandPrimary} />
+            ) : (
+              <View style={styles.stickyBtnContent}>
+                <Text style={styles.stickySubmitBtnText}>
+                  {isStockAvailable ? "Order Now →" : "Out of Stock"}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+      </View>
 
       {/* Google Maps Transit / COD Meeting Point Inspector Modal */}
       <GoogleDeliveryMapModal
@@ -900,92 +975,96 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
     ...shadows.md,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: spacing.sm,
   },
   headerRightActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
+    flexShrink: 0,
   },
   switchRoleBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: "rgba(255, 255, 255, 0.22)",
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.35)",
   },
   switchRoleBtnText: {
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 2,
     fontWeight: "800",
     color: colors.onBrandPrimary,
   },
   headerInfo: {
     gap: 2,
     flex: 1,
+    minWidth: 140,
   },
   badgeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    marginBottom: 4,
+    marginBottom: 2,
+    flexWrap: "wrap",
   },
   verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 2,
     borderRadius: radius.xs,
   },
   verifiedBadgeText: {
-    fontSize: type.xs - 2,
+    fontSize: type.xs - 3,
     fontWeight: "800",
     color: colors.onBrandPrimary,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   maxCapBadge: {
     backgroundColor: colors.brandTertiary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 2,
     borderRadius: radius.xs,
   },
   maxCapBadgeText: {
-    fontSize: type.xs - 2,
+    fontSize: type.xs - 3,
     fontWeight: "800",
     color: colors.onBrandTertiary,
   },
   welcomeText: {
-    fontSize: type.xl,
+    fontSize: type.lg,
     fontWeight: "800",
     color: colors.onBrandPrimary,
   },
   companyText: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     color: colors.brandTertiary,
     fontWeight: "600",
   },
   body: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    gap: spacing.md,
   },
   activeOrderCard: {
     backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     padding: spacing.md,
     borderWidth: 1.5,
     borderColor: colors.brandPrimaryContainer,
@@ -1009,19 +1088,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandPrimary,
   },
   activeOrderTitle: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     fontWeight: "800",
     color: colors.brandPrimary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   activeOrderId: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "700",
     color: colors.muted,
   },
   activeOrderDesc: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     color: colors.onSurfaceSecondary,
     fontWeight: "600",
   },
@@ -1033,12 +1112,12 @@ const styles = StyleSheet.create({
   },
   timelineStep: {
     alignItems: "center",
-    gap: 4,
+    gap: 3,
   },
   timelineDot: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1049,7 +1128,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerHighest,
   },
   timelineLabel: {
-    fontSize: type.xs - 2,
+    fontSize: type.xs - 3,
     color: colors.muted,
     fontWeight: "600",
   },
@@ -1071,10 +1150,10 @@ const styles = StyleSheet.create({
   activeOrderCta: {
     backgroundColor: colors.brandTertiary,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 40,
+    minHeight: 38,
   },
   activeOrderCtaText: {
     fontSize: type.xs,
@@ -1082,61 +1161,63 @@ const styles = StyleSheet.create({
     color: colors.onBrandTertiary,
   },
   productHeroContainer: {
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     overflow: "hidden",
     ...shadows.md,
   },
   productHeroImage: {
     width: "100%",
-    minHeight: 200,
+    minHeight: 180,
   },
   productHeroImageStyle: {
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
   },
   productHeroGradient: {
-    padding: spacing.lg,
-    minHeight: 200,
+    padding: spacing.md,
+    minHeight: 180,
     justifyContent: "space-between",
   },
   heroTopBadges: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.xs,
   },
   heroPurityBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     backgroundColor: colors.brandPrimary,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
     borderRadius: radius.xs,
   },
   heroPurityText: {
     color: "#FFFFFF",
-    fontSize: type.xs - 2,
+    fontSize: type.xs - 3,
     fontWeight: "800",
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   heroRateBadge: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 4,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
     borderRadius: radius.xs,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
   heroRateText: {
     color: colors.brandPrimaryContainer,
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "800",
   },
   heroBottomContent: {
-    gap: 4,
-    marginTop: spacing.md,
+    gap: 3,
+    marginTop: spacing.sm,
   },
   heroTitle: {
-    fontSize: type.xl,
+    fontSize: type.lg,
     fontWeight: "800",
     color: "#FFFFFF",
     textShadowColor: "rgba(0,0,0,0.5)",
@@ -1144,40 +1225,40 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   heroSubtitle: {
-    fontSize: type.xs,
-    color: "rgba(255,255,255,0.85)",
-    lineHeight: 18,
+    fontSize: type.xs - 1,
+    color: "rgba(255,255,255,0.88)",
+    lineHeight: 16,
   },
   heroSpecsRow: {
     flexDirection: "row",
-    gap: spacing.xs + 2,
-    marginTop: 6,
+    gap: spacing.xs,
+    marginTop: 4,
     flexWrap: "wrap",
   },
   heroSpecPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    gap: 3,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 2,
     borderRadius: radius.xs,
   },
   heroSpecPillText: {
-    fontSize: type.xs - 2,
+    fontSize: type.xs - 3,
     color: "#FFFFFF",
     fontWeight: "700",
   },
   section: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs + 2,
   },
   sectionTitle: {
-    fontSize: type.base,
+    fontSize: type.md,
     fontWeight: "800",
     color: colors.onSurface,
   },
@@ -1186,24 +1267,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerHighest,
     borderRadius: radius.md,
     padding: 3,
-    gap: 4,
+    gap: 3,
   },
   modeTab: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
-    paddingVertical: 10,
+    gap: 3,
+    paddingVertical: 8,
     borderRadius: radius.sm,
-    minHeight: 44,
+    minHeight: 40,
+    paddingHorizontal: 4,
   },
   modeTabActive: {
     backgroundColor: colors.brandPrimary,
     ...shadows.sm,
   },
   modeTabText: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "700",
     color: colors.onSurfaceSecondary,
   },
@@ -1215,7 +1297,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBg,
     borderRadius: radius.md,
     padding: spacing.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     gap: spacing.md,
     ...shadows.sm,
@@ -1226,50 +1308,74 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
   },
   customCardSub: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     color: colors.onSurfaceSecondary,
     lineHeight: 16,
   },
-  gramControlRow: {
+  gramStepperContainer: {
+    gap: spacing.sm,
+  },
+  stepperMainRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
     justifyContent: "space-between",
+    gap: spacing.xs,
   },
-  adjustBtn: {
+  stepCircleBtn: {
     backgroundColor: colors.surfaceContainer,
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
     borderRadius: radius.sm,
-    minHeight: touchTarget.minHeight,
+    minHeight: 44,
+    minWidth: 44,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  adjustBtnText: {
+  stepCircleBtnText: {
     fontSize: type.xs,
     fontWeight: "800",
     color: colors.brandPrimary,
   },
-  gramInputWrapper: {
-    flex: 1,
-    flexDirection: "row",
+  stepCircleBtnSmall: {
+    backgroundColor: colors.surfaceContainer,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    minHeight: 44,
+    minWidth: 40,
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  stepCircleBtnSmallText: {
+    fontSize: type.xs - 1,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+  },
+  gramDisplayWrapper: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1.5,
     borderColor: colors.brandPrimary,
     borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    minHeight: touchTarget.minHeight,
-    backgroundColor: colors.surfaceContainerLowest,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.xs,
+    minHeight: 44,
   },
-  gramInput: {
-    flex: 1,
+  gramInputLarge: {
     fontSize: type.lg,
     fontWeight: "800",
     color: colors.onSurface,
     textAlign: "center",
+    padding: 0,
   },
-  gramInputSuffix: {
-    fontSize: type.xs,
+  gramDisplayUnit: {
+    fontSize: type.xs - 2,
     fontWeight: "700",
     color: colors.muted,
   },
@@ -1302,8 +1408,8 @@ const styles = StyleSheet.create({
   },
   quickChip: {
     backgroundColor: colors.surfaceContainer,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1313,7 +1419,7 @@ const styles = StyleSheet.create({
     borderColor: colors.brandPrimary,
   },
   quickChipText: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "700",
     color: colors.onSurface,
   },
@@ -1323,7 +1429,7 @@ const styles = StyleSheet.create({
   quickBudgetChip: {
     backgroundColor: colors.surfaceContainer,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1333,7 +1439,7 @@ const styles = StyleSheet.create({
     borderColor: colors.brandPrimary,
   },
   quickBudgetChipText: {
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 2,
     fontWeight: "700",
     color: colors.onSurface,
   },
@@ -1362,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   deliveryToggleRow: {
     flexDirection: "row",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   deliveryToggleBtn: {
     flex: 1,
@@ -1371,18 +1477,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.md,
+    padding: spacing.sm,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   deliveryToggleBtnActive: {
     backgroundColor: colors.brandPrimary,
     borderColor: colors.brandPrimary,
   },
   deliveryToggleText: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     fontWeight: "700",
     color: colors.onSurfaceSecondary,
   },
@@ -1395,15 +1501,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   zoneHeaderTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: spacing.xs,
   },
   zoneLabel: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "700",
     color: colors.muted,
     textTransform: "uppercase",
@@ -1411,14 +1518,14 @@ const styles = StyleSheet.create({
   mapInspectBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: colors.brandTertiary,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: radius.xs,
   },
   mapInspectBtnText: {
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 2,
     fontWeight: "800",
     color: colors.onBrandTertiary,
   },
@@ -1429,12 +1536,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: spacing.md,
-    borderRadius: radius.md,
+    padding: spacing.sm + 2,
+    borderRadius: radius.sm,
     backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    minHeight: touchTarget.minHeight,
     gap: spacing.sm,
   },
   meetingPointCardActive: {
@@ -1449,11 +1555,11 @@ const styles = StyleSheet.create({
   mpTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
     flexWrap: "wrap",
   },
   mpName: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     fontWeight: "700",
     color: colors.onSurface,
   },
@@ -1463,38 +1569,38 @@ const styles = StyleSheet.create({
   },
   mpBadge: {
     backgroundColor: colors.brandPrimary,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: radius.xs,
   },
   mpBadgeText: {
     color: "#FFFFFF",
-    fontSize: type.xs - 3,
+    fontSize: type.xs - 4,
     fontWeight: "800",
   },
   mpAddress: {
-    fontSize: type.xs,
+    fontSize: type.xs - 2,
     color: colors.onSurfaceSecondary,
   },
   mpSecurity: {
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 3,
     color: colors.muted,
-    marginTop: 2,
   },
   mpDistanceBadge: {
     backgroundColor: colors.surfaceContainer,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs + 2,
     paddingVertical: 4,
     borderRadius: radius.xs,
     alignItems: "center",
+    flexShrink: 0,
   },
   mpDistanceValue: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "800",
     color: colors.brandPrimary,
   },
   mpDistanceLabel: {
-    fontSize: type.xs - 3,
+    fontSize: type.xs - 4,
     color: colors.muted,
   },
   zoneChip: {
@@ -1549,32 +1655,34 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: spacing.sm,
+    gap: spacing.xs + 2,
     ...shadows.sm,
   },
   summaryHeading: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     fontWeight: "800",
     color: colors.muted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 4,
   },
   summaryText: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     color: colors.onSurfaceSecondary,
   },
   summaryValue: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     fontWeight: "700",
     color: colors.onSurface,
   },
@@ -1586,16 +1694,18 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     paddingTop: 4,
+    flexWrap: "wrap",
+    gap: 4,
   },
   totalLabel: {
-    fontSize: type.base,
+    fontSize: type.sm,
     fontWeight: "800",
     color: colors.onSurface,
   },
   totalSub: {
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 2,
     color: colors.muted,
   },
   totalAmount: {
@@ -1622,6 +1732,66 @@ const styles = StyleSheet.create({
   submitBtnText: {
     color: colors.onBrandPrimary,
     fontSize: type.base,
+    fontWeight: "800",
+  },
+  stickyBottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.cardBg,
+    borderTopWidth: 1.5,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+    ...shadows.lg,
+    zIndex: 99,
+  },
+  stickyBarInner: {
+    width: "100%",
+    maxWidth: layout.maxWidth,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  stickyPriceGroup: {
+    flex: 1,
+  },
+  stickyPriceLabel: {
+    fontSize: type.xs - 3,
+    fontWeight: "800",
+    color: colors.muted,
+    textTransform: "uppercase",
+  },
+  stickyPriceValue: {
+    fontSize: type.lg,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+  },
+  stickyPriceSub: {
+    fontSize: type.xs - 2,
+    color: colors.onSurfaceSecondary,
+    fontWeight: "600",
+  },
+  stickySubmitBtn: {
+    backgroundColor: colors.brandPrimary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.md,
+  },
+  stickyBtnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stickySubmitBtnText: {
+    color: colors.onBrandPrimary,
+    fontSize: type.sm,
     fontWeight: "800",
   },
 });

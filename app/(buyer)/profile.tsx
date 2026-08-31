@@ -44,7 +44,7 @@ export default function BuyerProfileScreen() {
         contentContainerStyle={[
           styles.body,
           layout.centeredContainer,
-          { paddingBottom: insets.bottom + 90 },
+          { paddingBottom: insets.bottom + 140 },
         ]}
         showsVerticalScrollIndicator={false}
       >
