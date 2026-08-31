@@ -27,7 +27,7 @@ export default function AdminDashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { inventory, updateInventoryStockStatus, financialMetrics, exportSalesCSV, bookings } = useApp();
-  const { currentUser } = useAuth();
+  const { currentUser, switchUser } = useAuth();
   const { t } = useI18n();
 
   const [restockModalVisible, setRestockModalVisible] = useState(false);
@@ -113,7 +113,21 @@ export default function AdminDashboardScreen() {
               })}
             </Text>
           </View>
-          <LangToggle />
+          <View style={styles.headerRightActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Switch to Buyer View"
+              style={({ pressed }) => [styles.switchRoleBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                switchUser("buyer");
+                router.replace("/(buyer)");
+              }}
+            >
+              <MaterialCommunityIcons name="account-switch" size={16} color={colors.onBrandPrimary} />
+              <Text style={styles.switchRoleBtnText}>Buyer View &rarr;</Text>
+            </Pressable>
+            <LangToggle />
+          </View>
         </View>
       </LinearGradient>
 
@@ -470,6 +484,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  switchRoleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.35)",
+  },
+  switchRoleBtnText: {
+    fontSize: type.xs - 1,
+    fontWeight: "800",
+    color: colors.onBrandPrimary,
   },
   headerTitleGroup: {
     gap: 2,

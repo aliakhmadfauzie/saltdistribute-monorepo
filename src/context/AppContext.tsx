@@ -167,6 +167,10 @@ interface CreateBookingParams {
   deliveryZone?: string;
   deliveryFee: number;
   deliveryAddress?: string;
+  meetingPointId?: string;
+  meetingPointName?: string;
+  estimatedDistanceKm?: number;
+  estimatedMinutes?: number;
   notes?: string;
 }
 
@@ -313,6 +317,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deliveryFee: params.deliveryFee,
       grandTotal,
       deliveryAddress: params.deliveryAddress,
+      meetingPointId: params.meetingPointId,
+      meetingPointName: params.meetingPointName,
+      estimatedDistanceKm: params.estimatedDistanceKm,
+      estimatedMinutes: params.estimatedMinutes,
       notes: params.notes,
       status: "PENDING_CONFIRMATION",
       createdAt: new Date().toISOString(),

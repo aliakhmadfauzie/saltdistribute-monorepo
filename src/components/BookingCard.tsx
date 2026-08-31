@@ -173,21 +173,27 @@ export default function BookingCard({
           </Text>
         </View>
 
-        {/* Google Maps Route Inspector Button for Delivery orders */}
-        {booking.deliveryType === "DELIVERY" && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Inspect Delivery Route on Google Maps"
-            style={styles.mapRouteBtn}
-            onPress={() => setIsMapModalVisible(true)}
-          >
-            <MaterialCommunityIcons name="map-marker-path" size={16} color={colors.brandPrimary} />
-            <Text style={styles.mapRouteBtnText}>
-              {isAdmin ? "View Dispatch Route & ETA" : "Track Estimated Delivery Route"}
-            </Text>
-            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.brandPrimary} />
-          </Pressable>
-        )}
+        {/* Google Maps Route / COD Meeting Point Inspector Button */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Inspect Delivery Route or COD Meeting Point on Google Maps"
+          style={styles.mapRouteBtn}
+          onPress={() => setIsMapModalVisible(true)}
+        >
+          <MaterialCommunityIcons
+            name={booking.deliveryType === "COD" ? "handshake-outline" : "map-marker-path"}
+            size={16}
+            color={colors.brandPrimary}
+          />
+          <Text style={styles.mapRouteBtnText}>
+            {booking.deliveryType === "COD"
+              ? `View COD Meeting Point (${booking.meetingPointName || "Belawan Hub Area"})`
+              : isAdmin
+              ? "View Dispatch Route & ETA"
+              : "Track Estimated Delivery Route"}
+          </Text>
+          <MaterialCommunityIcons name="chevron-right" size={16} color={colors.brandPrimary} />
+        </Pressable>
       </View>
 
       {/* Buyer Information (Admin View) */}
@@ -375,11 +381,13 @@ export default function BookingCard({
         ) : null}
       </View>
 
-      {/* Google Maps Delivery Route Modal */}
+      {/* Google Maps Delivery Route / COD Meeting Point Modal */}
       <GoogleDeliveryMapModal
         visible={isMapModalVisible}
         onClose={() => setIsMapModalVisible(false)}
         zoneName={booking.deliveryZone}
+        meetingPointId={booking.meetingPointId}
+        meetingPointName={booking.meetingPointName}
         deliveryAddress={booking.deliveryAddress}
         deliveryFee={booking.deliveryFee}
       />

@@ -7,43 +7,25 @@ import {
   Pressable,
   Platform,
   Linking,
-  ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../theme";
 import { formatIDR } from "../api";
-
-export interface DeliveryLocation {
-  label: string;
-  zoneName?: string;
-  address?: string;
-  lat: number;
-  lng: number;
-  distanceKm: number;
-  estimatedMinutes: number;
-}
-
-// Belawan Terminal Central Warehouse Origin
-export const WAREHOUSE_ORIGIN = {
-  name: "SaltDistribute Marine Terminal Hub",
-  address: "Pelabuhan Belawan, Medan, Sumatera Utara",
-  lat: 3.7844,
-  lng: 98.6833,
-};
-
-// Preset zone coordinates
-export const ZONE_COORDINATES: Record<string, { lat: number; lng: number; distanceKm: number; estMin: number }> = {
-  "Medan Kota & Sekitarnya": { lat: 3.5952, lng: 98.6722, distanceKm: 22.4, estMin: 45 },
-  "KIM 1 / 2 / 3 & Belawan": { lat: 3.7421, lng: 98.6655, distanceKm: 6.8, estMin: 18 },
-  "Deli Serdang & Binjai": { lat: 3.6001, lng: 98.4854, distanceKm: 34.2, estMin: 65 },
-  "Luar Kota Express": { lat: 3.3100, lng: 98.9200, distanceKm: 78.5, estMin: 120 },
-};
+import {
+  WAREHOUSE_HUB,
+  getRouteInfo,
+  getGoogleMapsNavigationUrl,
+  getWazeNavigationUrl,
+} from "../services/mapsService";
 
 interface GoogleDeliveryMapModalProps {
   visible: boolean;
   onClose: () => void;
   zoneName?: string;
+  meetingPointId?: string;
+  meetingPointName?: string;
   deliveryAddress?: string;
   deliveryFee?: number;
 }
@@ -51,26 +33,30 @@ interface GoogleDeliveryMapModalProps {
 export default function GoogleDeliveryMapModal({
   visible,
   onClose,
-  zoneName = "Medan Kota & Sekitarnya",
+  zoneName,
+  meetingPointId,
+  meetingPointName,
   deliveryAddress,
   deliveryFee = 25000,
 }: GoogleDeliveryMapModalProps) {
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
-  const [isLoading, setIsLoading] = useState(true);
 
-  const destCoords = ZONE_COORDINATES[zoneName] || ZONE_COORDINATES["Medan Kota & Sekitarnya"];
-  const displayAddress = deliveryAddress?.trim() || `${zoneName}, Sumatera Utara`;
+  const routeInfo = getRouteInfo({
+    zoneName,
+    meetingPointId,
+    customAddress: deliveryAddress || meetingPointName,
+  });
 
-  const handleOpenNativeGoogleMaps = () => {
-    const originStr = `${WAREHOUSE_ORIGIN.lat},${WAREHOUSE_ORIGIN.lng}`;
-    const destStr = `${destCoords.lat},${destCoords.lng}`;
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
-      originStr
-    )}&destination=${encodeURIComponent(destStr)}&travelmode=driving&utm_campaign=gmp_git_agentskills_v1`;
+  const isCOD = routeInfo.type === "COD_MEETING_POINT";
 
-    Linking.openURL(url).catch((err) => {
-      console.warn("Could not open Google Maps", err);
-    });
+  const handleOpenGoogleMaps = () => {
+    const url = getGoogleMapsNavigationUrl(routeInfo.lat, routeInfo.lng);
+    Linking.openURL(url).catch((err) => console.warn("Could not open Google Maps", err));
+  };
+
+  const handleOpenWaze = () => {
+    const url = getWazeNavigationUrl(routeInfo.lat, routeInfo.lng);
+    Linking.openURL(url).catch((err) => console.warn("Could not open Waze", err));
   };
 
   // Embedded Interactive Google Maps HTML
@@ -104,7 +90,7 @@ export default function GoogleDeliveryMapModal({
         font-weight: bold;
       }
       .badge-dest {
-        background: #BA1A1A;
+        background: ${isCOD ? "#D97706" : "#BA1A1A"};
         color: #ffffff;
         padding: 4px 8px;
         border-radius: 4px;
@@ -116,8 +102,8 @@ export default function GoogleDeliveryMapModal({
     <script>
       let map;
       function initMap() {
-        const origin = { lat: ${WAREHOUSE_ORIGIN.lat}, lng: ${WAREHOUSE_ORIGIN.lng} };
-        const dest = { lat: ${destCoords.lat}, lng: ${destCoords.lng} };
+        const origin = { lat: ${WAREHOUSE_HUB.lat}, lng: ${WAREHOUSE_HUB.lng} };
+        const dest = { lat: ${routeInfo.lat}, lng: ${routeInfo.lng} };
 
         const bounds = new google.maps.LatLngBounds();
         bounds.extend(origin);
@@ -125,7 +111,7 @@ export default function GoogleDeliveryMapModal({
 
         map = new google.maps.Map(document.getElementById("map"), {
           center: origin,
-          zoom: 11,
+          zoom: 12,
           mapTypeId: "${mapType}",
           disableDefaultUI: false,
           zoomControl: true,
@@ -137,37 +123,37 @@ export default function GoogleDeliveryMapModal({
         const originMarker = new google.maps.Marker({
           position: origin,
           map: map,
-          title: "Warehouse Hub: Belawan Marine Terminal",
+          title: "Belawan Marine Logistics Hub",
           icon: {
             url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
           }
         });
 
         const originInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-origin">CENTRAL HUB</span><br/><b>Belawan Marine Terminal</b><br/>Ready for Dispatch</div>'
+          content: '<div style="padding:4px;"><span class="badge-origin">CENTRAL HUB</span><br/><b>${WAREHOUSE_HUB.name}</b><br/>${WAREHOUSE_HUB.facility}</div>'
         });
         originMarker.addListener("click", () => originInfo.open(map, originMarker));
 
-        // Destination Marker
+        // Destination / Meeting Point Marker
         const destMarker = new google.maps.Marker({
           position: dest,
           map: map,
-          title: "Delivery Destination",
+          title: "${routeInfo.name}",
           icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+            url: "${isCOD ? "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png" : "https://maps.google.com/mapfiles/ms/icons/red-dot.png"}"
           }
         });
 
         const destInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-dest">DESTINATION</span><br/><b>${zoneName}</b><br/>${destCoords.distanceKm} km (~${destCoords.estMin} mins)</div>'
+          content: '<div style="padding:4px;"><span class="badge-dest">${isCOD ? "COD MEETING POINT" : "DELIVERY DESTINATION"}</span><br/><b>${routeInfo.name}</b><br/>${routeInfo.distanceKm} km (~${routeInfo.estimatedMinutes} mins)</div>'
         });
         destMarker.addListener("click", () => destInfo.open(map, destMarker));
 
-        // Delivery Route Polyline
+        // Route Polyline
         const routePath = new google.maps.Polyline({
           path: [origin, dest],
           geodesic: true,
-          strokeColor: "#006C4C",
+          strokeColor: "${isCOD ? "#D97706" : "#006C4C"}",
           strokeOpacity: 0.85,
           strokeWeight: 4,
         });
@@ -180,7 +166,7 @@ export default function GoogleDeliveryMapModal({
   </head>
   <body>
     <div class="custom-overlay">
-      🚚 Belawan Hub &rarr; ${zoneName} (${destCoords.distanceKm} km)
+      📍 ${isCOD ? "COD Meetup" : "Dispatch"}: ${routeInfo.distanceKm} km (~${routeInfo.estimatedMinutes} mins)
     </div>
     <div id="map"></div>
   </body>
@@ -199,13 +185,21 @@ export default function GoogleDeliveryMapModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleGroup}>
-              <View style={styles.gmapBadge}>
-                <MaterialCommunityIcons name="google-maps" size={16} color={colors.onBrandPrimary} />
-                <Text style={styles.gmapBadgeText}>GOOGLE MAPS PLATFORM</Text>
+              <View style={[styles.gmapBadge, isCOD && styles.codBadge]}>
+                <MaterialCommunityIcons
+                  name={isCOD ? "handshake-outline" : "google-maps"}
+                  size={16}
+                  color={colors.onBrandPrimary}
+                />
+                <Text style={styles.gmapBadgeText}>
+                  {isCOD ? "VERIFIED COD MEETING POINT" : "GOOGLE MAPS TRANSIT ROUTE"}
+                </Text>
               </View>
-              <Text style={styles.title}>Delivery Transit Route</Text>
+              <Text style={styles.title}>
+                {isCOD ? routeInfo.name : "Estimated Delivery Route"}
+              </Text>
               <Text style={styles.subtitle}>
-                {WAREHOUSE_ORIGIN.name} &rarr; {zoneName}
+                Hub &rarr; {routeInfo.address}
               </Text>
             </View>
             <Pressable
@@ -252,7 +246,7 @@ export default function GoogleDeliveryMapModal({
 
             <View style={styles.etaChip}>
               <MaterialCommunityIcons name="clock-fast" size={14} color={colors.brandPrimary} />
-              <Text style={styles.etaChipText}>Est. ~{destCoords.estMin} mins</Text>
+              <Text style={styles.etaChipText}>~{routeInfo.estimatedMinutes} mins transit</Text>
             </View>
           </View>
 
@@ -271,7 +265,6 @@ export default function GoogleDeliveryMapModal({
                 style={styles.webView}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
-                onLoadEnd={() => setIsLoading(false)}
               />
             )}
           </View>
@@ -281,47 +274,68 @@ export default function GoogleDeliveryMapModal({
             <View style={styles.locationRow}>
               <MaterialCommunityIcons name="map-marker-radius" size={20} color={colors.brandPrimary} />
               <View style={styles.locTextGroup}>
-                <Text style={styles.locLabel}>Origin Hub (Dispatch Point)</Text>
-                <Text style={styles.locValue}>{WAREHOUSE_ORIGIN.name} (Belawan Port)</Text>
+                <Text style={styles.locLabel}>Origin Warehouse Hub</Text>
+                <Text style={styles.locValue}>{WAREHOUSE_HUB.name} ({WAREHOUSE_HUB.facility})</Text>
               </View>
             </View>
 
             <View style={styles.dividerLine} />
 
             <View style={styles.locationRow}>
-              <MaterialCommunityIcons name="map-marker-check" size={20} color={colors.error} />
+              <MaterialCommunityIcons
+                name={isCOD ? "shield-account" : "map-marker-check"}
+                size={20}
+                color={isCOD ? colors.warning : colors.error}
+              />
               <View style={styles.locTextGroup}>
-                <Text style={styles.locLabel}>Delivery Destination</Text>
-                <Text style={styles.locValue}>{displayAddress}</Text>
+                <Text style={styles.locLabel}>{isCOD ? "Secure Meeting Point" : "Delivery Destination"}</Text>
+                <Text style={styles.locValue}>{routeInfo.address}</Text>
+                {routeInfo.securityNote ? (
+                  <Text style={styles.securitySub}>🛡️ {routeInfo.securityNote} &bull; {routeInfo.operatingHours}</Text>
+                ) : null}
               </View>
             </View>
 
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
                 <Text style={styles.statLabel}>Distance</Text>
-                <Text style={styles.statValue}>{destCoords.distanceKm} km</Text>
+                <Text style={styles.statValue}>{routeInfo.distanceKm} km</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Transit Time</Text>
-                <Text style={styles.statValue}>~{destCoords.estMin} mins</Text>
+                <Text style={styles.statLabel}>ETA / Duration</Text>
+                <Text style={styles.statValue}>~{routeInfo.estimatedMinutes} mins</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Delivery Fee</Text>
-                <Text style={styles.statValue}>{formatIDR(deliveryFee)}</Text>
+                <Text style={styles.statLabel}>Freight Fee</Text>
+                <Text style={styles.statValue}>
+                  {isCOD ? "FREE (COD)" : formatIDR(deliveryFee)}
+                </Text>
               </View>
             </View>
           </View>
 
-          {/* Open in Google Maps Native App Action */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open live navigation in Google Maps"
-            style={({ pressed }) => [styles.navBtn, pressed && { opacity: 0.9 }]}
-            onPress={handleOpenNativeGoogleMaps}
-          >
-            <MaterialCommunityIcons name="navigation-variant" size={22} color={colors.onBrandPrimary} />
-            <Text style={styles.navBtnText}>Open Live Navigation in Google Maps</Text>
-          </Pressable>
+          {/* Navigation Action Buttons */}
+          <View style={styles.actionRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open live navigation in Google Maps"
+              style={({ pressed }) => [styles.navBtn, styles.googleMapsBtn, pressed && { opacity: 0.9 }]}
+              onPress={handleOpenGoogleMaps}
+            >
+              <MaterialCommunityIcons name="google-maps" size={20} color={colors.onBrandPrimary} />
+              <Text style={styles.navBtnText}>Open in Google Maps</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open in Waze Navigation"
+              style={({ pressed }) => [styles.navBtn, styles.wazeBtn, pressed && { opacity: 0.9 }]}
+              onPress={handleOpenWaze}
+            >
+              <MaterialCommunityIcons name="waze" size={20} color={colors.onBrandPrimary} />
+              <Text style={styles.navBtnText}>Open in Waze</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
@@ -339,7 +353,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     padding: spacing.lg,
-    maxHeight: "92%",
+    maxHeight: "94%",
     gap: spacing.md,
     ...shadows.lg,
   },
@@ -361,6 +375,9 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: radius.xs,
     alignSelf: "flex-start",
+  },
+  codBadge: {
+    backgroundColor: colors.warning,
   },
   gmapBadgeText: {
     color: colors.onBrandPrimary,
@@ -430,7 +447,7 @@ const styles = StyleSheet.create({
     color: colors.onBrandTertiary,
   },
   mapFrame: {
-    height: 240,
+    height: 220,
     backgroundColor: colors.surfaceContainer,
     borderRadius: radius.md,
     overflow: "hidden",
@@ -468,6 +485,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.onSurface,
   },
+  securitySub: {
+    fontSize: type.xs - 1,
+    color: colors.muted,
+    marginTop: 2,
+  },
   dividerLine: {
     height: 1,
     backgroundColor: colors.divider,
@@ -497,19 +519,29 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.brandPrimary,
   },
+  actionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
   navBtn: {
-    backgroundColor: colors.brandPrimary,
+    flex: 1,
     borderRadius: radius.md,
     minHeight: touchTarget.minHeight,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.sm,
-    ...shadows.md,
+    gap: spacing.xs,
+    ...shadows.sm,
+  },
+  googleMapsBtn: {
+    backgroundColor: colors.brandPrimary,
+  },
+  wazeBtn: {
+    backgroundColor: "#33CCFF",
   },
   navBtnText: {
     color: colors.onBrandPrimary,
-    fontSize: type.sm,
+    fontSize: type.xs + 1,
     fontWeight: "800",
   },
 });

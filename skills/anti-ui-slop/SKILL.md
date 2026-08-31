@@ -3,9 +3,9 @@ name: anti-ui-slop
 description: 'Ensure SaltDistribute screens follow intentional B2B wholesale order management design standards, avoiding generic UI slop. Enforces real-time stock thresholds, tier pricing selectors, payment proof upload modals, WhatsApp order triggers, multi-status order lifecycles, and bilingual support.'
 ---
 
-# SaltDistribute Anti-UI Slop: B2B Order Management Standards
+# SaltDistribute Anti-UI Slop:  Order Management Standards
 
-Build intentional, enterprise-grade wholesale order management interfaces for SaltDistribute instead of generic cookie-cutter templates.
+Build intentional, enterprise-grade item order management interfaces for SaltDistribute instead of generic cookie-cutter templates.
 
 ---
 

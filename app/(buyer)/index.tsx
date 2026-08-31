@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ImageBackground,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,12 +16,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
-import { useApp, useAuth, formatIDR, formatGrams } from "../../src/api";
+import { useApp, useAuth, formatIDR } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import StockBanner from "../../src/components/StockBanner";
 import TierSelector from "../../src/components/TierSelector";
 import LangToggle from "../../src/components/LangToggle";
 import GoogleDeliveryMapModal from "../../src/components/GoogleDeliveryMapModal";
+import { COD_MEETING_POINTS } from "../../src/services/mapsService";
 import { UnitTier } from "../../src/types";
 
 const MAX_GRAM_LIMIT = 5.0; // Hard max 5.0 grams per transaction
@@ -29,7 +31,7 @@ export default function BuyerDashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { inventory, createBooking, bookings } = useApp();
-  const { currentUser } = useAuth();
+  const { currentUser, switchUser } = useAuth();
   const { t } = useI18n();
 
   // Purchase Mode: 'TIER' | 'CUSTOM_GRAMS' | 'BY_BUDGET'
@@ -48,6 +50,7 @@ export default function BuyerDashboardScreen() {
 
   const [deliveryType, setDeliveryType] = useState<"COD" | "DELIVERY">("DELIVERY");
   const [selectedZone, setSelectedZone] = useState<string>("Medan Kota & Sekitarnya");
+  const [selectedMeetingPointId, setSelectedMeetingPointId] = useState<string>(COD_MEETING_POINTS[0].id);
   const [address, setAddress] = useState(currentUser?.address || "");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +66,7 @@ export default function BuyerDashboardScreen() {
       b.status === "CONFIRMED_DELIVERING"
   );
 
+  const selectedMeetingPoint = COD_MEETING_POINTS.find((mp) => mp.id === selectedMeetingPointId) || COD_MEETING_POINTS[0];
   const deliveryOption = inventory.deliveryOptions.find((d) => d.type === "DELIVERY");
   const activeZoneObj = deliveryOption?.deliveryZones?.find((z) => z.zoneName === selectedZone);
   const deliveryFee = deliveryType === "COD" ? 0 : activeZoneObj?.fee || 25000;
@@ -155,6 +159,9 @@ export default function BuyerDashboardScreen() {
         deliveryZone: deliveryType === "DELIVERY" ? selectedZone : undefined,
         deliveryFee,
         deliveryAddress: deliveryType === "DELIVERY" ? address.trim() : undefined,
+        meetingPointId: deliveryType === "COD" ? selectedMeetingPoint.id : undefined,
+        meetingPointName: deliveryType === "COD" ? selectedMeetingPoint.name : undefined,
+        estimatedDistanceKm: deliveryType === "COD" ? selectedMeetingPoint.distanceFromHubKm : activeZoneObj?.fee ? 22.4 : 10,
         notes: notes.trim() || undefined,
       });
 
@@ -205,7 +212,21 @@ export default function BuyerDashboardScreen() {
             <Text style={styles.welcomeText}>Hello, {currentUser?.name || "Buyer"}</Text>
             <Text style={styles.companyText}>{currentUser?.companyName || "Direct Wholesale Client"}</Text>
           </View>
-          <LangToggle />
+          <View style={styles.headerRightActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Switch to Admin Portal"
+              style={({ pressed }) => [styles.switchRoleBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                switchUser("admin");
+                router.replace("/(admin)");
+              }}
+            >
+              <MaterialCommunityIcons name="shield-crown" size={16} color={colors.onBrandPrimary} />
+              <Text style={styles.switchRoleBtnText}>Admin View →</Text>
+            </Pressable>
+            <LangToggle />
+          </View>
         </View>
       </LinearGradient>
 
@@ -337,8 +358,8 @@ export default function BuyerDashboardScreen() {
             >
               <Text style={styles.activeOrderCtaText}>
                 {activeOrder.status === "AWAITING_PAYMENT"
-                  ? "Upload Payment Receipt \u2192"
-                  : "View Details & Chat \u2192"}
+                  ? "Upload Payment Receipt →"
+                  : "View Details & Chat →"}
               </Text>
             </Pressable>
           </View>
@@ -347,39 +368,49 @@ export default function BuyerDashboardScreen() {
         {/* Live Stock & Broadcast Banner */}
         <StockBanner />
 
-        {/* Product Overview & Transparent Rate Card */}
-        <View style={styles.productCard}>
-          <View style={styles.productTopRow}>
-            <View style={styles.productBadge}>
-              <MaterialCommunityIcons name="shield-check" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.productBadgeText}>CERTIFIED NaCl 99.2%</Text>
-            </View>
-            <View style={styles.priceRateBadge}>
-              <Text style={styles.priceRateBadgeText}>
-                0.5g = Rp 400.000 &bull; 1.0g = Rp 800.000
-              </Text>
-            </View>
-          </View>
+        {/* High-Definition Hero Product Card */}
+        <View style={styles.productHeroContainer}>
+          <ImageBackground
+            source={require("../../assets/images/salt_crystals_hero.jpg")}
+            style={styles.productHeroImage}
+            imageStyle={styles.productHeroImageStyle}
+          >
+            <LinearGradient
+              colors={["rgba(0,0,0,0.15)", "rgba(0,40,25,0.88)"]}
+              style={styles.productHeroGradient}
+            >
+              <View style={styles.heroTopBadges}>
+                <View style={styles.heroPurityBadge}>
+                  <MaterialCommunityIcons name="shield-check" size={16} color="#FFFFFF" />
+                  <Text style={styles.heroPurityText}>NaCl 99.2% LAB CERTIFIED</Text>
+                </View>
+                <View style={styles.heroRateBadge}>
+                  <Text style={styles.heroRateText}>Rp 800.000 / g</Text>
+                </View>
+              </View>
 
-          <Text style={styles.productTitle}>{inventory.productName}</Text>
-          <Text style={styles.productSubtitle}>
-            Ultra-pure high grade refinery salt. Purchase freely by package tiers, custom gram weights, or specify your exact purchasing budget (up to 5.0 grams max).
-          </Text>
-
-          <View style={styles.specChipsRow}>
-            <View style={styles.specChip}>
-              <MaterialCommunityIcons name="scale-bathroom" size={14} color={colors.brandPrimary} />
-              <Text style={styles.specChipText}>Max 5.0 g / Order</Text>
-            </View>
-            <View style={styles.specChip}>
-              <MaterialCommunityIcons name="cash" size={14} color={colors.brandPrimary} />
-              <Text style={styles.specChipText}>Rp 800.000 / gram</Text>
-            </View>
-            <View style={styles.specChip}>
-              <MaterialCommunityIcons name="certificate-outline" size={14} color={colors.brandPrimary} />
-              <Text style={styles.specChipText}>ISO 9001 / Halal</Text>
-            </View>
-          </View>
+              <View style={styles.heroBottomContent}>
+                <Text style={styles.heroTitle}>{inventory.productName}</Text>
+                <Text style={styles.heroSubtitle}>
+                  Ultra-pure pharmaceutical refinery crystals with double-centrifuged moisture control (&lt;0.15%).
+                </Text>
+                <View style={styles.heroSpecsRow}>
+                  <View style={styles.heroSpecPill}>
+                    <MaterialCommunityIcons name="scale-bathroom" size={13} color={colors.brandTertiary} />
+                    <Text style={styles.heroSpecPillText}>0.1g - 5.0g Max</Text>
+                  </View>
+                  <View style={styles.heroSpecPill}>
+                    <MaterialCommunityIcons name="certificate" size={13} color={colors.brandTertiary} />
+                    <Text style={styles.heroSpecPillText}>ISO 9001 / Halal</Text>
+                  </View>
+                  <View style={styles.heroSpecPill}>
+                    <MaterialCommunityIcons name="truck-fast" size={13} color={colors.brandTertiary} />
+                    <Text style={styles.heroSpecPillText}>Instant Dispatch</Text>
+                  </View>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
         </View>
 
         {/* Flexible Purchasing Mode Selector */}
@@ -543,7 +574,7 @@ export default function BuyerDashboardScreen() {
             <View style={styles.customCard}>
               <Text style={styles.customCardHeading}>Specify Your Purchase Budget (IDR)</Text>
               <Text style={styles.customCardSub}>
-                Enter the amount you wish to spend. We will automatically calculate the exact grams of salt you receive based on Rp 800.000 / gram.
+                Enter the amount you wish to spend. We calculate the exact grams of salt based on Rp 800.000 / gram.
               </Text>
 
               <View style={styles.budgetInputWrapper}>
@@ -598,7 +629,7 @@ export default function BuyerDashboardScreen() {
           )}
         </View>
 
-        {/* Delivery Method Selection */}
+        {/* Fulfillment Method Selection */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="truck-delivery-outline" size={22} color={colors.brandPrimary} />
@@ -640,7 +671,7 @@ export default function BuyerDashboardScreen() {
               onPress={() => setDeliveryType("COD")}
             >
               <MaterialCommunityIcons
-                name="storefront"
+                name="handshake-outline"
                 size={22}
                 color={deliveryType === "COD" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
@@ -655,10 +686,75 @@ export default function BuyerDashboardScreen() {
             </Pressable>
           </View>
 
-          {/* Delivery Zones */}
+          {/* COD Safe Meeting Point Selection */}
+          {deliveryType === "COD" && (
+            <View style={styles.zoneContainer}>
+              <View style={styles.zoneHeaderTop}>
+                <Text style={styles.zoneLabel}>SELECT SAFE COD MEETING POINT</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Preview meeting point map"
+                  style={styles.mapInspectBtn}
+                  onPress={() => setIsMapModalVisible(true)}
+                >
+                  <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
+                  <Text style={styles.mapInspectBtnText}>View on Map</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.zoneOptions}>
+                {COD_MEETING_POINTS.map((mp) => {
+                  const isPointSelected = selectedMeetingPointId === mp.id;
+                  return (
+                    <Pressable
+                      key={mp.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isPointSelected }}
+                      style={[styles.meetingPointCard, isPointSelected && styles.meetingPointCardActive]}
+                      onPress={() => setSelectedMeetingPointId(mp.id)}
+                    >
+                      <View style={styles.mpLeft}>
+                        <View style={styles.mpTitleRow}>
+                          <Text style={[styles.mpName, isPointSelected && styles.mpNameActive]}>
+                            {mp.name}
+                          </Text>
+                          {mp.isPopular && (
+                            <View style={styles.mpBadge}>
+                              <Text style={styles.mpBadgeText}>RECOMMENDED</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.mpAddress}>{mp.address}</Text>
+                        <Text style={styles.mpSecurity}>🛡️ {mp.securityNote} &bull; {mp.operatingHours}</Text>
+                      </View>
+
+                      <View style={styles.mpDistanceBadge}>
+                        <Text style={styles.mpDistanceValue}>{mp.distanceFromHubKm} km</Text>
+                        <Text style={styles.mpDistanceLabel}>from Hub</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Direct Delivery Zones */}
           {deliveryType === "DELIVERY" && deliveryOption?.deliveryZones ? (
             <View style={styles.zoneContainer}>
-              <Text style={styles.zoneLabel}>{t("selectZone")}</Text>
+              <View style={styles.zoneHeaderTop}>
+                <Text style={styles.zoneLabel}>{t("selectZone")}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Inspect delivery route on map"
+                  style={styles.mapInspectBtn}
+                  onPress={() => setIsMapModalVisible(true)}
+                >
+                  <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
+                  <Text style={styles.mapInspectBtnText}>Inspect Route & ETA</Text>
+                </Pressable>
+              </View>
+
               <View style={styles.zoneOptions}>
                 {deliveryOption.deliveryZones.map((z, idx) => {
                   const isZoneSelected = selectedZone === z.zoneName;
@@ -680,25 +776,6 @@ export default function BuyerDashboardScreen() {
                   );
                 })}
               </View>
-
-              {/* Google Maps Route Live Trigger */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="View transit route & live navigation on Google Maps"
-                style={({ pressed }) => [styles.mapTriggerCard, pressed && { opacity: 0.9 }]}
-                onPress={() => setIsMapModalVisible(true)}
-              >
-                <View style={styles.mapTriggerIconBox}>
-                  <MaterialCommunityIcons name="google-maps" size={24} color={colors.brandPrimary} />
-                </View>
-                <View style={styles.mapTriggerInfo}>
-                  <Text style={styles.mapTriggerTitle}>Google Maps Delivery Transit Route</Text>
-                  <Text style={styles.mapTriggerSub}>
-                    Belawan Marine Hub &rarr; {selectedZone} &bull; Tap to preview route & GPS
-                  </Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.brandPrimary} />
-              </Pressable>
 
               <View style={styles.field}>
                 <Text style={styles.inputLabel}>{t("address")} *</Text>
@@ -749,10 +826,12 @@ export default function BuyerDashboardScreen() {
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryText}>
-              {deliveryType === "COD" ? "Self Pickup Warehouse" : `Delivery (${selectedZone})`}
+              {deliveryType === "COD"
+                ? `COD Pickup (${selectedMeetingPoint.name})`
+                : `Delivery (${selectedZone})`}
             </Text>
             <Text style={styles.summaryValue}>
-              {deliveryFee === 0 ? "FREE" : formatIDR(deliveryFee)}
+              {deliveryFee === 0 ? "FREE (COD)" : formatIDR(deliveryFee)}
             </Text>
           </View>
 
@@ -767,7 +846,7 @@ export default function BuyerDashboardScreen() {
           </View>
         </View>
 
-        {/* Submit Booking CTA Button with 48dp touch height */}
+        {/* Submit Booking CTA Button */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("placeOrder")}
@@ -775,7 +854,7 @@ export default function BuyerDashboardScreen() {
           style={({ pressed }) => [
             styles.submitBtn,
             !isStockAvailable && styles.submitBtnDisabled,
-            pressed && isStockAvailable && { opacity: 0.9 },
+            pressed && isStockAvailable && { opacity: 0.9, transform: [{ scale: 0.99 }] },
           ]}
           onPress={handleSubmitOrder}
           disabled={!isStockAvailable || isSubmitting}
@@ -801,12 +880,14 @@ export default function BuyerDashboardScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Google Delivery Map Modal */}
+      {/* Google Maps Transit / COD Meeting Point Inspector Modal */}
       <GoogleDeliveryMapModal
         visible={isMapModalVisible}
         onClose={() => setIsMapModalVisible(false)}
-        zoneName={selectedZone}
-        deliveryAddress={address}
+        zoneName={deliveryType === "DELIVERY" ? selectedZone : undefined}
+        meetingPointId={deliveryType === "COD" ? selectedMeetingPoint.id : undefined}
+        meetingPointName={deliveryType === "COD" ? selectedMeetingPoint.name : undefined}
+        deliveryAddress={deliveryType === "DELIVERY" ? address : selectedMeetingPoint.address}
         deliveryFee={deliveryFee}
       />
     </View>
@@ -829,6 +910,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  switchRoleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.35)",
+  },
+  switchRoleBtnText: {
+    fontSize: type.xs - 1,
+    fontWeight: "800",
+    color: colors.onBrandPrimary,
   },
   headerInfo: {
     gap: 2,
@@ -979,77 +1081,92 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.onBrandTertiary,
   },
-  productCard: {
-    backgroundColor: colors.cardBg,
+  productHeroContainer: {
     borderRadius: radius.lg,
+    overflow: "hidden",
+    ...shadows.md,
+  },
+  productHeroImage: {
+    width: "100%",
+    minHeight: 200,
+  },
+  productHeroImageStyle: {
+    borderRadius: radius.lg,
+  },
+  productHeroGradient: {
     padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.sm,
-    ...shadows.sm,
-  },
-  productTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    minHeight: 200,
     justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: 6,
   },
-  productBadge: {
-    backgroundColor: colors.brandPrimary,
+  heroTopBadges: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  heroPurityBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    gap: 4,
+    backgroundColor: colors.brandPrimary,
+    paddingHorizontal: spacing.sm + 2,
     paddingVertical: 4,
     borderRadius: radius.xs,
   },
-  productBadgeText: {
-    color: colors.onBrandPrimary,
+  heroPurityText: {
+    color: "#FFFFFF",
     fontSize: type.xs - 2,
     fontWeight: "800",
     letterSpacing: 0.8,
   },
-  priceRateBadge: {
-    backgroundColor: colors.brandPrimaryContainer,
-    paddingHorizontal: spacing.sm,
+  heroRateBadge: {
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: spacing.sm + 2,
     paddingVertical: 4,
     borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
-  priceRateBadgeText: {
-    fontSize: type.xs - 1,
-    fontWeight: "800",
-    color: colors.onBrandPrimaryContainer,
-  },
-  productTitle: {
-    fontSize: type.lg,
-    fontWeight: "800",
-    color: colors.onSurface,
-  },
-  productSubtitle: {
+  heroRateText: {
+    color: colors.brandPrimaryContainer,
     fontSize: type.xs,
-    color: colors.onSurfaceSecondary,
+    fontWeight: "800",
+  },
+  heroBottomContent: {
+    gap: 4,
+    marginTop: spacing.md,
+  },
+  heroTitle: {
+    fontSize: type.xl,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  heroSubtitle: {
+    fontSize: type.xs,
+    color: "rgba(255,255,255,0.85)",
     lineHeight: 18,
   },
-  specChipsRow: {
+  heroSpecsRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: 4,
+    gap: spacing.xs + 2,
+    marginTop: 6,
     flexWrap: "wrap",
   },
-  specChip: {
+  heroSpecPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor: "rgba(255,255,255,0.15)",
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: radius.xs,
   },
-  specChipText: {
-    fontSize: type.xs - 1,
-    color: colors.onSurfaceSecondary,
-    fontWeight: "600",
+  heroSpecPillText: {
+    fontSize: type.xs - 2,
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   section: {
     gap: spacing.md,
@@ -1101,6 +1218,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     gap: spacing.md,
+    ...shadows.sm,
   },
   customCardHeading: {
     fontSize: type.sm,
@@ -1279,14 +1397,105 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     gap: spacing.md,
   },
+  zoneHeaderTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   zoneLabel: {
     fontSize: type.xs,
     fontWeight: "700",
     color: colors.muted,
     textTransform: "uppercase",
   },
+  mapInspectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.xs,
+  },
+  mapInspectBtnText: {
+    fontSize: type.xs - 1,
+    fontWeight: "800",
+    color: colors.onBrandTertiary,
+  },
   zoneOptions: {
     gap: spacing.xs,
+  },
+  meetingPointCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: touchTarget.minHeight,
+    gap: spacing.sm,
+  },
+  meetingPointCardActive: {
+    backgroundColor: colors.brandTertiary,
+    borderColor: colors.brandPrimary,
+    borderWidth: 1.5,
+  },
+  mpLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  mpTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  mpName: {
+    fontSize: type.sm,
+    fontWeight: "700",
+    color: colors.onSurface,
+  },
+  mpNameActive: {
+    color: colors.onBrandTertiary,
+    fontWeight: "800",
+  },
+  mpBadge: {
+    backgroundColor: colors.brandPrimary,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.xs,
+  },
+  mpBadgeText: {
+    color: "#FFFFFF",
+    fontSize: type.xs - 3,
+    fontWeight: "800",
+  },
+  mpAddress: {
+    fontSize: type.xs,
+    color: colors.onSurfaceSecondary,
+  },
+  mpSecurity: {
+    fontSize: type.xs - 1,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  mpDistanceBadge: {
+    backgroundColor: colors.surfaceContainer,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.xs,
+    alignItems: "center",
+  },
+  mpDistanceValue: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+  },
+  mpDistanceLabel: {
+    fontSize: type.xs - 3,
+    color: colors.muted,
   },
   zoneChip: {
     flexDirection: "row",
@@ -1319,40 +1528,6 @@ const styles = StyleSheet.create({
   },
   zoneFeeActive: {
     color: colors.onBrandTertiary,
-  },
-  mapTriggerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surfaceContainerLowest,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.brandPrimaryContainer,
-    gap: spacing.md,
-    minHeight: touchTarget.minHeight,
-    ...shadows.sm,
-  },
-  mapTriggerIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    backgroundColor: colors.brandTertiary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mapTriggerInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  mapTriggerTitle: {
-    fontSize: type.xs,
-    fontWeight: "800",
-    color: colors.brandPrimary,
-  },
-  mapTriggerSub: {
-    fontSize: type.xs - 1,
-    color: colors.onSurfaceSecondary,
-    fontWeight: "600",
   },
   field: {
     gap: 4,

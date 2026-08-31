@@ -72,12 +72,28 @@ export interface Booking {
   grandTotal: number;
   deliveryAddress?: string;
   notes?: string;
+  meetingPointId?: string;
+  meetingPointName?: string;
+  estimatedDistanceKm?: number;
+  estimatedMinutes?: number;
   status: BookingStatus;
   rejectionReason?: string;
   paymentProofUrl?: string;
   paymentUploadedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MeetingPoint {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  distanceFromHubKm: number;
+  operatingHours: string;
+  securityNote?: string;
+  isPopular?: boolean;
 }
 
 export interface RestockLog {

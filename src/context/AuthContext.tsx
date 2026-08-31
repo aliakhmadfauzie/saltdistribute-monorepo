@@ -85,6 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedUser = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
         if (storedUser) {
           setCurrentUser(JSON.parse(storedUser));
+        } else {
+          // Default to Buyer user for instant testing
+          const defaultBuyer = INITIAL_USERS[1];
+          setCurrentUser(defaultBuyer);
+          await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultBuyer));
         }
       } catch (e) {
         console.warn("Error initializing auth", e);
