@@ -2,59 +2,58 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from "
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Inventory, Booking, BookingStatus, RestockLog, ChatMessage, UnitTier } from "../types";
 
-const INVENTORY_STORAGE_KEY = "@saltdistribute_inventory_v1";
-const BOOKINGS_STORAGE_KEY = "@saltdistribute_bookings_v1";
-const RESTOCK_STORAGE_KEY = "@saltdistribute_restock_v1";
-const CHATS_STORAGE_KEY = "@saltdistribute_chats_v1";
+const INVENTORY_STORAGE_KEY = "@saltdistribute_inventory_v3";
+const BOOKINGS_STORAGE_KEY = "@saltdistribute_bookings_v3";
+const RESTOCK_STORAGE_KEY = "@saltdistribute_restock_v3";
+const CHATS_STORAGE_KEY = "@saltdistribute_chats_v3";
 
 const INITIAL_TIERS: UnitTier[] = [
-  { id: "tier_100g", name: "Sample Pouch", quantityGram: 100, label: "100 g", discountPercent: 0 },
-  { id: "tier_500g", name: "Kitchen Pack", quantityGram: 500, label: "500 g", discountPercent: 3 },
-  { id: "tier_1kg", name: "Standard Bag", quantityGram: 1000, label: "1.0 kg", discountPercent: 5, isPopular: true },
-  { id: "tier_500kg", name: "Bulk Half-Ton", quantityGram: 500000, label: "0.5 Ton", discountPercent: 12 },
-  { id: "tier_1ton", name: "Industrial Full Ton", quantityGram: 1000000, label: "1.0 Ton", discountPercent: 18, isPopular: true },
-  { id: "tier_1_2ton", name: "Max Freight Container", quantityGram: 1200000, label: "1.2 Ton", discountPercent: 22 },
+  { id: "tier_0_5g", name: "Mini Pouch", quantityGram: 0.5, label: "0.5 g", discountPercent: 0 },
+  { id: "tier_1g", name: "Standard Gram", quantityGram: 1.0, label: "1.0 g", discountPercent: 0, isPopular: true },
+  { id: "tier_2g", name: "Double Pack", quantityGram: 2.0, label: "2.0 g", discountPercent: 0 },
+  { id: "tier_3g", name: "Triple Pack", quantityGram: 3.0, label: "3.0 g", discountPercent: 0 },
+  { id: "tier_5g", name: "Max 5 Gram Vault", quantityGram: 5.0, label: "5.0 g", discountPercent: 0, isPopular: true },
 ];
 
 const INITIAL_INVENTORY: Inventory = {
   inventoryId: "item_a_stock_main",
-  productName: "Refined Pure Industrial & Food Grade Salt (NaCl 99.2%)",
+  productName: "Refined Pure High-Grade Special Salt (99.2% Purity)",
   isStockAvailable: true,
-  availableQuantityGram: 25000000, // 25 Tons
-  basePricePerGram: 2.0, // IDR 2,000 per 1 kg = 2.0 IDR/g (Wholesale raw rate: IDR 2,000,000/ton)
+  availableQuantityGram: 500.0, // 500 Grams warehouse reserve
+  basePricePerGram: 800000, // Rp 800,000 / gram (0.5g = Rp 400,000, 1.0g = Rp 800,000)
   unitTiers: INITIAL_TIERS,
   deliveryOptions: [
     { type: "COD", label: "Self Pickup (Warehouse Belawan - COD)", fee: 0 },
     {
       type: "DELIVERY",
       label: "Direct Dispatch Delivery",
-      fee: 75000,
+      fee: 25000,
       deliveryZones: [
-        { zoneName: "Medan Kota & Sekitarnya", fee: 75000 },
-        { zoneName: "KIM 1 / 2 / 3 & Belawan", fee: 150000 },
-        { zoneName: "Deli Serdang & Binjai", fee: 200000 },
-        { zoneName: "Luar Kota / Sumatera Freight", fee: 450000 },
+        { zoneName: "Medan Kota & Sekitarnya", fee: 25000 },
+        { zoneName: "KIM 1 / 2 / 3 & Belawan", fee: 35000 },
+        { zoneName: "Deli Serdang & Binjai", fee: 50000 },
+        { zoneName: "Luar Kota Express", fee: 75000 },
       ],
     },
   ],
   updatedAt: new Date().toISOString(),
-  promoBannerText: "🚚 Special Promo: Free Pallet Wrapping on all orders above 1.0 Ton!",
+  promoBannerText: "✨ Official Rate: 0.5g = Rp 400.000 | 1.0g = Rp 800.000 (Max purchase: 5.0g per order)",
 };
 
 const INITIAL_RESTOCK_LOGS: RestockLog[] = [
   {
     id: "rst_001",
-    quantityAddedGram: 30000000,
-    costPerGram: 1.25,
-    totalCost: 37500000,
-    supplierName: "PT Garam Madura Segar",
+    quantityAddedGram: 300,
+    costPerGram: 600000,
+    totalCost: 180000000,
+    supplierName: "PT Garam Segar Refinery",
     timestamp: "2026-08-01T08:00:00Z",
   },
   {
     id: "rst_002",
-    quantityAddedGram: 15000000,
-    costPerGram: 1.30,
-    totalCost: 19500000,
+    quantityAddedGram: 200,
+    costPerGram: 620000,
+    totalCost: 124000000,
     supplierName: "Koperasi Garam Pesisir Rembang",
     timestamp: "2026-08-18T10:30:00Z",
   },
@@ -66,17 +65,17 @@ const INITIAL_BOOKINGS: Booking[] = [
     buyerId: "usr_buyer_001",
     buyerName: "Budi Santoso (PT Jaya Mandiri Pangan)",
     buyerPhone: "+628198765432",
-    quantityGram: 1000000,
-    packageLabel: "1.0 Ton",
-    pricePerGram: 2.0,
-    baseSubtotal: 2000000,
-    discountAmount: 360000,
+    quantityGram: 1.0,
+    packageLabel: "1.0 g",
+    pricePerGram: 800000,
+    baseSubtotal: 800000,
+    discountAmount: 0,
     deliveryType: "DELIVERY",
     deliveryZone: "KIM 1 / 2 / 3 & Belawan",
-    deliveryFee: 150000,
-    grandTotal: 1790000,
+    deliveryFee: 35000,
+    grandTotal: 835000,
     deliveryAddress: "Jl. Industri Belawan No. 45, Medan",
-    notes: "Please deliver before 2 PM, truck access available.",
+    notes: "Direct express delivery.",
     status: "PAYMENT_VERIFICATION",
     paymentProofUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80",
     paymentUploadedAt: "2026-08-30T14:20:00Z",
@@ -88,15 +87,15 @@ const INITIAL_BOOKINGS: Booking[] = [
     buyerId: "usr_buyer_002",
     buyerName: "Siti Rahma (CV Dapur Lestari Utama)",
     buyerPhone: "+628135557890",
-    quantityGram: 500000,
-    packageLabel: "0.5 Ton",
-    pricePerGram: 2.0,
-    baseSubtotal: 1000000,
-    discountAmount: 120000,
+    quantityGram: 0.5,
+    packageLabel: "0.5 g",
+    pricePerGram: 800000,
+    baseSubtotal: 400000,
+    discountAmount: 0,
     deliveryType: "COD",
     deliveryFee: 0,
-    grandTotal: 880000,
-    notes: "Self pickup with pickup car B 9876 XYZ",
+    grandTotal: 400000,
+    notes: "Self pickup Belawan",
     status: "PENDING_CONFIRMATION",
     createdAt: "2026-08-31T09:15:00Z",
     updatedAt: "2026-08-31T09:15:00Z",
@@ -106,15 +105,15 @@ const INITIAL_BOOKINGS: Booking[] = [
     buyerId: "usr_buyer_001",
     buyerName: "Budi Santoso (PT Jaya Mandiri Pangan)",
     buyerPhone: "+628198765432",
-    quantityGram: 1200000,
-    packageLabel: "1.2 Ton",
-    pricePerGram: 2.0,
-    baseSubtotal: 2400000,
-    discountAmount: 528000,
+    quantityGram: 5.0,
+    packageLabel: "5.0 g",
+    pricePerGram: 800000,
+    baseSubtotal: 4000000,
+    discountAmount: 0,
     deliveryType: "DELIVERY",
     deliveryZone: "Medan Kota & Sekitarnya",
-    deliveryFee: 75000,
-    grandTotal: 1947000,
+    deliveryFee: 25000,
+    grandTotal: 4025000,
     deliveryAddress: "Jl. Industri Belawan No. 45, Medan",
     status: "COMPLETED",
     paymentProofUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80",

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { UnitTier } from "../types";
 import { formatIDR } from "../api";
@@ -25,7 +25,6 @@ export default function TierSelector({
         const subtotal = tier.quantityGram * basePricePerGram;
         const discountAmount = subtotal * (tier.discountPercent / 100);
         const finalPrice = subtotal - discountAmount;
-        const pricePerKg = (finalPrice / tier.quantityGram) * 1000;
 
         return (
           <Pressable
@@ -49,24 +48,38 @@ export default function TierSelector({
               </View>
             ) : null}
 
-            <View style={styles.cardTop}>
-              <View style={styles.cardHeader}>
-                <Text style={[styles.tierName, isSelected && styles.tierNameSelected]}>
-                  {tier.name}
-                </Text>
-                {tier.discountPercent > 0 ? (
-                  <View style={styles.discountChip}>
-                    <Text style={styles.discountText}>Save {tier.discountPercent}%</Text>
-                  </View>
-                ) : null}
+            <View style={styles.cardMainRow}>
+              {/* Product Tier Thumbnail */}
+              <View style={styles.thumbWrapper}>
+                <Image
+                  source={require("../../assets/images/salt_packaging_tiers.jpg")}
+                  style={styles.thumbImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.weightTag}>
+                  <Text style={styles.weightTagText}>{tier.quantityGram}g</Text>
+                </View>
               </View>
 
-              <Text style={[styles.labelMain, isSelected && styles.labelMainSelected]}>
-                {tier.label}
-              </Text>
-              <Text style={styles.unitRateSub}>
-                Rate: {formatIDR(pricePerKg)} / kg
-              </Text>
+              <View style={styles.cardDetails}>
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.tierName, isSelected && styles.tierNameSelected]}>
+                    {tier.name}
+                  </Text>
+                  {tier.discountPercent > 0 ? (
+                    <View style={styles.discountChip}>
+                      <Text style={styles.discountText}>Save {tier.discountPercent}%</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <Text style={[styles.labelMain, isSelected && styles.labelMainSelected]}>
+                  {tier.label}
+                </Text>
+                <Text style={styles.unitRateSub}>
+                  Rate: {formatIDR(basePricePerGram)} / gram
+                </Text>
+              </View>
             </View>
 
             <View style={styles.cardFooter}>
@@ -86,7 +99,7 @@ export default function TierSelector({
                   color={isSelected ? colors.brandPrimary : colors.muted}
                 />
                 <Text style={[styles.radioLabel, isSelected && styles.radioLabelSelected]}>
-                  {isSelected ? "Selected" : "Select"}
+                  {isSelected ? "Selected Package" : "Select"}
                 </Text>
               </View>
             </View>
@@ -134,14 +147,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    zIndex: 2,
   },
   popularText: {
     color: colors.onBrandPrimary,
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 2,
     fontWeight: "800",
     letterSpacing: 0.5,
   },
-  cardTop: {
+  cardMainRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    alignItems: "center",
+  },
+  thumbWrapper: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  thumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+  weightTag: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    alignItems: "center",
+    paddingVertical: 1,
+  },
+  weightTagText: {
+    fontSize: type.xs - 3,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  cardDetails: {
+    flex: 1,
     gap: 2,
   },
   cardHeader: {
@@ -149,10 +197,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     marginBottom: 2,
-    paddingRight: 90,
+    paddingRight: 80,
   },
   tierName: {
-    fontSize: type.sm,
+    fontSize: type.xs + 1,
     color: colors.onSurfaceSecondary,
     fontWeight: "700",
   },
@@ -166,12 +214,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.xs,
   },
   discountText: {
-    fontSize: type.xs - 1,
+    fontSize: type.xs - 2,
     fontWeight: "800",
     color: colors.onWarningContainer,
   },
   labelMain: {
-    fontSize: type.xl,
+    fontSize: type.lg,
     fontWeight: "800",
     color: colors.onSurface,
   },
@@ -179,7 +227,7 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
   },
   unitRateSub: {
-    fontSize: type.xs,
+    fontSize: type.xs - 1,
     color: colors.muted,
     fontWeight: "600",
   },
@@ -198,12 +246,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   strikethroughPrice: {
-    fontSize: type.xs + 1,
+    fontSize: type.xs,
     color: colors.muted,
     textDecorationLine: "line-through",
   },
   finalPrice: {
-    fontSize: type.lg,
+    fontSize: type.base,
     fontWeight: "800",
     color: colors.onSurface,
   },
@@ -216,7 +264,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   radioLabel: {
-    fontSize: type.xs + 1,
+    fontSize: type.xs,
     fontWeight: "600",
     color: colors.muted,
   },

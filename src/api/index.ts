@@ -15,5 +15,6 @@ export function formatGrams(grams: number): string {
     const kgs = grams / 1000;
     return `${kgs.toFixed(kgs % 1 === 0 ? 0 : 1)} kg`;
   }
-  return `${grams} g`;
+  const formatted = Number(grams.toFixed(2));
+  return `${formatted} g`;
 }

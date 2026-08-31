@@ -70,6 +70,20 @@ const translations = {
     stage_paid: "3. Paid",
     stage_delivered: "4. Delivered",
 
+    // Dashboard enhancements
+    trackActiveOrder: "Active Order in Progress",
+    activeOrderDesc: "Your booking is currently being processed.",
+    viewAllOrders: "View All Orders",
+    recentActivity: "Recent Booking Activity",
+    quickShortcuts: "Quick Management",
+    pipelineSnapshot: "Pipeline Overview",
+    avgOrderValue: "Avg Order Value",
+    stockCapacity: "Warehouse Stock Capacity",
+    lowStockWarning: "Low Stock Alert: Remaining quantity under threshold!",
+    verifiedWholesale: "Verified Wholesale Buyer",
+    puritySpec: "NaCl 99.2% High Purity (ISO/Halal Certified)",
+    warehouseHub: "Warehouse Hub: Belawan Marine Terminal, Medan",
+
     // Admin UI
     adminDashboard: "Admin Executive Dashboard",
     revenue: "Total Revenue",
@@ -185,6 +199,20 @@ const translations = {
     stage_confirmed: "2. Dikonfirmasi",
     stage_paid: "3. Dibayar",
     stage_delivered: "4. Dikirim",
+
+    // Dashboard enhancements
+    trackActiveOrder: "Pesanan Aktif Berlangsung",
+    activeOrderDesc: "Pesanan Anda sedang diproses oleh tim kami.",
+    viewAllOrders: "Lihat Semua Pesanan",
+    recentActivity: "Aktivitas Pesanan Terbaru",
+    quickShortcuts: "Akses Cepat Pengelolaan",
+    pipelineSnapshot: "Ringkasan Pipeline",
+    avgOrderValue: "Rata-rata Nilai Order",
+    stockCapacity: "Kapasitas Stok Gudang",
+    lowStockWarning: "Peringatan: Stok garam tersisa di bawah batas aman!",
+    verifiedWholesale: "Pembeli Grosir Terverifikasi",
+    puritySpec: "Kemurnian Tinggi NaCl 99.2% (Sertifikasi ISO/Halal)",
+    warehouseHub: "Hub Gudang: Terminal Belawan, Medan",
 
     // Admin UI
     adminDashboard: "Dashboard Eksekutif Admin",

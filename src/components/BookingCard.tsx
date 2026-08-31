@@ -6,6 +6,7 @@ import { formatIDR } from "../api";
 import { useI18n } from "../i18n";
 import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
 import WhatsAppButton from "./WhatsAppButton";
+import GoogleDeliveryMapModal from "./GoogleDeliveryMapModal";
 
 interface BookingCardProps {
   booking: Booking;
@@ -30,6 +31,7 @@ export default function BookingCard({
 }: BookingCardProps) {
   const { t } = useI18n();
   const [isCopied, setIsCopied] = useState(false);
+  const [isMapModalVisible, setIsMapModalVisible] = useState(false);
 
   const handleCopyBookingId = () => {
     setIsCopied(true);
@@ -114,7 +116,7 @@ export default function BookingCard({
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Salin Order ID ${booking.bookingId}`}
+          accessibilityLabel={`Copy Order ID ${booking.bookingId}`}
           style={styles.idContainer}
           onPress={handleCopyBookingId}
         >
@@ -146,39 +148,58 @@ export default function BookingCard({
         </View>
       </View>
 
-      {/* Buyer & Delivery Info */}
+      {/* Package & Delivery Details */}
       <View style={styles.infoSection}>
         <View style={styles.infoRow}>
           <MaterialCommunityIcons name="package-variant-closed" size={20} color={colors.brandPrimary} />
-          <Text style={styles.packageText}>
-            {booking.packageLabel}{" "}
-            <Text style={styles.quantitySub}>({booking.quantityGram.toLocaleString("id-ID")} g)</Text>
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.packageText}>{booking.packageLabel}</Text>
+            <Text style={styles.quantitySub}>
+              {booking.quantityGram} grams ({booking.quantityGram / 1000} kg) NaCl 99.2% Pure
+            </Text>
+          </View>
         </View>
 
         <View style={styles.infoRow}>
           <MaterialCommunityIcons
-            name={booking.deliveryType === "COD" ? "storefront-outline" : "truck-delivery-outline"}
+            name={booking.deliveryType === "COD" ? "storefront-outline" : "truck-outline"}
             size={20}
             color={colors.onSurfaceSecondary}
           />
           <Text style={styles.deliveryText}>
             {booking.deliveryType === "COD"
               ? t("selfPickupCOD")
-              : `${t("dispatchDelivery")} - ${booking.deliveryZone || "Standard"}`}
+              : `${t("dispatchDelivery")} (${booking.deliveryZone || "Standard"})`}
           </Text>
         </View>
+
+        {/* Google Maps Route Inspector Button for Delivery orders */}
+        {booking.deliveryType === "DELIVERY" && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Inspect Delivery Route on Google Maps"
+            style={styles.mapRouteBtn}
+            onPress={() => setIsMapModalVisible(true)}
+          >
+            <MaterialCommunityIcons name="map-marker-path" size={16} color={colors.brandPrimary} />
+            <Text style={styles.mapRouteBtnText}>
+              {isAdmin ? "View Dispatch Route & ETA" : "Track Estimated Delivery Route"}
+            </Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.brandPrimary} />
+          </Pressable>
+        )}
       </View>
 
+      {/* Buyer Information (Admin View) */}
       {isAdmin ? (
         <View style={styles.buyerBox}>
           <View style={styles.buyerRow}>
-            <MaterialCommunityIcons name="account-circle" size={18} color={colors.brandPrimary} />
+            <MaterialCommunityIcons name="account-tie" size={16} color={colors.onSurface} />
             <Text style={styles.buyerTitle}>{booking.buyerName}</Text>
           </View>
-          <Text style={styles.buyerPhone}>📞 {booking.buyerPhone}</Text>
+          <Text style={styles.buyerPhone}>Phone: {booking.buyerPhone}</Text>
           {booking.deliveryAddress ? (
-            <Text style={styles.buyerAddress}>📍 {booking.deliveryAddress}</Text>
+            <Text style={styles.buyerAddress}>Dest: {booking.deliveryAddress}</Text>
           ) : null}
         </View>
       ) : null}
@@ -273,7 +294,7 @@ export default function BookingCard({
         {onOpenChat ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Buka percakapan order"
+            accessibilityLabel="Open order discussion"
             style={({ pressed }) => [styles.actionBtn, styles.chatBtn, pressed && { opacity: 0.85 }]}
             onPress={() => onOpenChat(booking)}
           >
@@ -353,6 +374,15 @@ export default function BookingCard({
           </Pressable>
         ) : null}
       </View>
+
+      {/* Google Maps Delivery Route Modal */}
+      <GoogleDeliveryMapModal
+        visible={isMapModalVisible}
+        onClose={() => setIsMapModalVisible(false)}
+        zoneName={booking.deliveryZone}
+        deliveryAddress={booking.deliveryAddress}
+        deliveryFee={booking.deliveryFee}
+      />
     </View>
   );
 }
@@ -435,6 +465,24 @@ const styles = StyleSheet.create({
   deliveryText: {
     fontSize: type.sm,
     color: colors.onSurfaceSecondary,
+  },
+  mapRouteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: colors.brandPrimaryContainer,
+  },
+  mapRouteBtnText: {
+    fontSize: type.xs,
+    fontWeight: "700",
+    color: colors.onBrandTertiary,
+    flex: 1,
   },
   buyerBox: {
     backgroundColor: colors.surfaceSecondary,
