@@ -1,0 +1,165 @@
+{
+  "app_name": "SaltDistribute",
+  "personality": "2 Material You / Expressive (Productivity/Utility-focused variant)",
+  "personality_one_liner": "A trusted, industrial-grade bulk ordering platform that blends B2B utility with Material 3's approachable, tonal hierarchy and Indonesian commerce cues.",
+  "color": {
+    "surface": "#FAFAF9",
+    "onSurface": "#1C1917",
+    "surfaceSecondary": "#F5F5F4",
+    "onSurfaceSecondary": "#44403C",
+    "surfaceTertiary": "#E7E5E4",
+    "onSurfaceTertiary": "#292524",
+    "surfaceInverse": "#1C1917",
+    "onSurfaceInverse": "#FAFAF9",
+    "brand": "#059669",
+    "brandPrimary": "#059669",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#10B981",
+    "onBrandSecondary": "#022C22",
+    "brandTertiary": "#D1FAE5",
+    "onBrandTertiary": "#064E3B",
+    "success": "#16A34A",
+    "onSuccess": "#FFFFFF",
+    "warning": "#D97706",
+    "onWarning": "#FFFFFF",
+    "error": "#DC2626",
+    "onError": "#FFFFFF",
+    "info": "#0F766E",
+    "onInfo": "#FFFFFF",
+    "border": "#D6D3D1",
+    "borderStrong": "#78716C",
+    "divider": "#E7E5E4"
+  },
+  "typography": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Roboto Flex",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Use 8pt grid system typical of Material guidelines. Ensure tap targets meet 44x44pt accessibility. Use generous bottom padding for sticky CTAs.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "bottom_tabs",
+  "icon_set": "MaterialCommunityIcons",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": ["Skip glass entirely for B2B dense utility screens. Use tonal separation instead."],
+    "dont's": ["Do not use blur headers; favor solid surfaceSecondary or brandTertiary tonal elevation."]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Buyer Home & Catalog",
+      "purpose": "Showcase bulk salt products and real-time warehouse stock availability.",
+      "states": {
+        "loading": "Skeleton UI representing stock banners and product cards.",
+        "empty": "Illustration of an empty warehouse with 'No products available right now' and a refresh CTA.",
+        "error": "Message 'Failed to load catalog' with Retry button."
+      },
+      "layout": "Vertical scroll feed. Top: Hero stock banner (photo overlaid with gradient scrim and text). Below: Grid of products (2 columns). Use Material 3 tonal cards (surfaceSecondary) without heavy drop shadows."
+    },
+    {
+      "name": "Product Detail & Calculator",
+      "purpose": "Allow buyer to select bulk quantity tiers (10/25/50/100kg), view automatic discounts, and checkout.",
+      "states": {
+        "loading": "Centered spinner.",
+        "empty": "Not applicable (always shows product).",
+        "error": "Message 'Could not fetch price tiers' with Retry button."
+      },
+      "layout": "Hero product image on top. Mid section: horizontal scrollable quantity tier chips (Pill shaped, brandTertiary when selected). Bottom: Sticky checkout CTA above home indicator inside a solid surface container."
+    },
+    {
+      "name": "Checkout & Payment Bottom Sheet",
+      "purpose": "Collect delivery zone and select payment (COD/Transfer) with receipt upload option.",
+      "states": {
+        "loading": "Spinner during payment submission.",
+        "empty": "N/A",
+        "error": "Error toast if upload fails."
+      },
+      "layout": "Full-screen bottom sheet. Segmented control for COD vs Transfer. File upload zone with dashed borderStrong and Material upload icon. Sticky 'Confirm Order' CTA at the bottom."
+    },
+    {
+      "name": "Order Timeline & Chat",
+      "purpose": "Track order status sequentially and provide a 1-on-1 WebSocket chat or WhatsApp fallback.",
+      "states": {
+        "loading": "Skeleton for timeline steps.",
+        "empty": "N/A",
+        "error": "Failed to load timeline or disconnected from chat."
+      },
+      "layout": "Top: Vertical visual stepper (Pending -> Verification -> Processing -> In Delivery -> Completed). Bottom: Expandable chat interface or sticky WhatsApp deep-link CTA (brandPrimary pill)."
+    },
+    {
+      "name": "Admin Dashboard & Inventory",
+      "purpose": "View KPI metrics (Revenue, Turnover) and toggle product stock status.",
+      "states": {
+        "loading": "Skeleton for KPI metrics.",
+        "empty": "No recent sales or products.",
+        "error": "Failed to load admin stats."
+      },
+      "layout": "Top: 2x2 grid of KPI cards using brandTertiary and surfaceSecondary. Bottom: List of inventory items with trailing Switch components to toggle In/Out of Stock."
+    },
+    {
+      "name": "Admin Order Pipeline (Kanban)",
+      "purpose": "Manage orders across statuses and approve/reject payment receipts.",
+      "states": {
+        "loading": "Spinner for pipeline fetch.",
+        "empty": "No active orders in selected status.",
+        "error": "Failed to fetch orders."
+      },
+      "layout": "AVOID multi-column horizontal layout. Use a vertical feed of order cards with horizontally scrollable status filter chips (Pending, Awaiting Proof, Verification, Delivery) pinned at the top. Tapping an order opens a Bottom Sheet to approve/reject receipt."
+    }
+  ],
+  "images": {
+    "hero_stock_banner": {
+      "url": "https://images.unsplash.com/photo-1785427427850-5ad75619b19b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwxfHxidWxrJTIwc2FsdCUyMGJhZ3MlMjB3YXJlaG91c2UlMjBwaG90b2dyYXBoeXxlbnwwfHx8fDE3ODgxNTQ1MTN8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Pallets of white industrial bulk salt bags against a grey wall"
+    },
+    "delivery_truck": {
+      "url": "https://images.unsplash.com/photo-1616432043562-3671ea2e5242?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHxjYXJnbyUyMGRlbGl2ZXJ5JTIwdHJ1Y2slMjBsb2dpc3RpY3N8ZW58MHx8fHwxNzg4MTU0NTEzfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Cargo delivery truck for logistics"
+    },
+    "empty_warehouse": {
+      "url": "https://images.unsplash.com/photo-1755717146866-983df8fd2208?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwxfHxlbXB0eSUyMGJveCUyMHdhcmVob3VzZSUyMGlsbHVzdHJhdGlvbnxlbnwwfHx8fDE3ODgxNTQ1MTN8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Empty warehouse illustration"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the NO BLUE rule: Ensure absolutely zero blue or purple is used anywhere (banned in links, statuses, primary colors, etc). The primary brand represents industrial trust using Emerald/Seaweed Green (#059669) over warm Slate/Ceramic whites (#FAFAF9).",
+    "Material 3 Execution: Do not use drop shadows. Elevation must be achieved tonally (using surface, surfaceSecondary, surfaceTertiary). Use pill shapes for tier selectors and language toggles.",
+    "Kanban Architecture (Learned from research): Do not use a horizontal scrolling multi-column Trello-style board on mobile. Instead, implement a vertical list of orders with a sticky, horizontally-scrollable chip row at the top to filter by status (Pending, Verification, Delivery).",
+    "Sticky CTAs: The 'Checkout' and 'Confirm Order' buttons must be placed inside a safe-area aware container fixed to the bottom of the screen, overlaid above scrolling content, without blur (use solid surface).",
+    "Images & Contrast: Ensure the hero_stock_banner has a top-to-bottom vertical linear gradient scrim (transparent to >=70% surfaceInverse) to guarantee text readability.",
+    "Language Toggle: Implement an EN/ID pill segmented control at the top right of relevant screens (e.g., Home or Profile).",
+    "Forms & Upload: The receipt upload state should feature a clear dashed border area with Material icons. Provide distinct 'Approve' and 'Reject' states in the Admin verification sheet."
+  ]
+}
