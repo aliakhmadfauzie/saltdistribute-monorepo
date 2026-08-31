@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,12 @@ import {
   getRouteInfo,
   getGoogleMapsNavigationUrl,
   getWazeNavigationUrl,
+  getOpenStreetMapNavigationUrl,
+  calculateDynamicDeliveryFee,
 } from "../services/mapsService";
+import { getCachedSellerLocation } from "../services/locationService";
+import { generateRouteMapHtml } from "../services/leafletService";
+import { requestScreenWakeLock, releaseScreenWakeLock } from "../services/wakeLockService";
 
 interface GoogleDeliveryMapModalProps {
   visible: boolean;
@@ -39,17 +44,30 @@ export default function GoogleDeliveryMapModal({
   meetingPointId,
   meetingPointName,
   deliveryAddress,
-  deliveryFee = 25000,
+  deliveryFee,
   sellerOriginLat,
   sellerOriginLng,
 }: GoogleDeliveryMapModalProps) {
   const { allUsers, currentUser } = useAuth();
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
 
+  // Keep screen awake during route preview / delivery navigation
+  useEffect(() => {
+    if (visible) {
+      requestScreenWakeLock();
+    } else {
+      releaseScreenWakeLock();
+    }
+    return () => {
+      releaseScreenWakeLock();
+    };
+  }, [visible]);
+
   const adminUser = allUsers.find((u) => u.role === "admin");
-  const sellerLat = sellerOriginLat || (currentUser?.role === "admin" ? currentUser.latitude : adminUser?.latitude) || DEFAULT_SELLER_LOCATION.lat;
-  const sellerLng = sellerOriginLng || (currentUser?.role === "admin" ? currentUser.longitude : adminUser?.longitude) || DEFAULT_SELLER_LOCATION.lng;
-  const sellerLabel = "Lokasi Penjual (Admin GPS)";
+  const cachedSeller = getCachedSellerLocation();
+  const sellerLat = sellerOriginLat || cachedSeller?.latitude || (currentUser?.role === "admin" ? currentUser.latitude : adminUser?.latitude) || DEFAULT_SELLER_LOCATION.lat;
+  const sellerLng = sellerOriginLng || cachedSeller?.longitude || (currentUser?.role === "admin" ? currentUser.longitude : adminUser?.longitude) || DEFAULT_SELLER_LOCATION.lng;
+  const sellerLabel = "Lokasi Penjual (Live Device GPS)";
 
   const routeInfo = getRouteInfo({
     zoneName,
@@ -60,6 +78,7 @@ export default function GoogleDeliveryMapModal({
   });
 
   const isCOD = routeInfo.type === "COD_MEETING_POINT";
+  const resolvedDeliveryFee = isCOD ? 0 : (deliveryFee !== undefined ? deliveryFee : calculateDynamicDeliveryFee(routeInfo.distanceKm));
 
   const handleOpenGoogleMaps = () => {
     const url = getGoogleMapsNavigationUrl(routeInfo.lat, routeInfo.lng, undefined, sellerLat, sellerLng);
@@ -71,119 +90,25 @@ export default function GoogleDeliveryMapModal({
     Linking.openURL(url).catch((err) => console.warn("Could not open Waze", err));
   };
 
-  // Embedded Interactive Google Maps HTML
-  const mapHtml = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #map { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      .custom-overlay {
-        position: absolute;
-        top: 12px;
-        left: 12px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 8px 12px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        font-size: 12px;
-        font-weight: 700;
-        color: #006C4C;
-        z-index: 1000;
-      }
-      .badge-origin {
-        background: #006C4C;
-        color: #ffffff;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: bold;
-      }
-      .badge-dest {
-        background: ${isCOD ? "#D97706" : "#BA1A1A"};
-        color: #ffffff;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: bold;
-      }
-    </style>
-    <script src="https://maps.googleapis.com/maps/api/js?key=DEMO_MAP_ID&v=weekly"></script>
-    <script>
-      let map;
-      function initMap() {
-        const origin = { lat: ${sellerLat}, lng: ${sellerLng} };
-        const dest = { lat: ${routeInfo.lat}, lng: ${routeInfo.lng} };
+  const handleOpenOSM = () => {
+    const url = getOpenStreetMapNavigationUrl(routeInfo.lat, routeInfo.lng, sellerLat, sellerLng);
+    Linking.openURL(url).catch((err) => console.warn("Could not open OpenStreetMap", err));
+  };
 
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(dest);
-
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: origin,
-          zoom: 12,
-          mapTypeId: "${mapType}",
-          disableDefaultUI: false,
-          zoomControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-        });
-
-        // Seller Origin Marker
-        const originMarker = new google.maps.Marker({
-          position: origin,
-          map: map,
-          title: "${sellerLabel}",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
-          }
-        });
-
-        const originInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-origin">SELLER ORIGIN</span><br/><b>${sellerLabel}</b><br/>Titik Berangkat Penjual</div>'
-        });
-        originMarker.addListener("click", () => originInfo.open(map, originMarker));
-
-        // Destination / Meeting Point Marker
-        const destMarker = new google.maps.Marker({
-          position: dest,
-          map: map,
-          title: "${routeInfo.name}",
-          icon: {
-            url: "${isCOD ? "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png" : "https://maps.google.com/mapfiles/ms/icons/red-dot.png"}"
-          }
-        });
-
-        const destInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-dest">${isCOD ? "COD MEETING POINT" : "DELIVERY DESTINATION"}</span><br/><b>${routeInfo.name}</b><br/>${routeInfo.distanceKm} km (~${routeInfo.estimatedMinutes} mins)</div>'
-        });
-        destMarker.addListener("click", () => destInfo.open(map, destMarker));
-
-        // Route Polyline
-        const routePath = new google.maps.Polyline({
-          path: [origin, dest],
-          geodesic: true,
-          strokeColor: "${isCOD ? "#D97706" : "#006C4C"}",
-          strokeOpacity: 0.85,
-          strokeWeight: 4,
-        });
-        routePath.setMap(map);
-
-        map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-      }
-      window.onload = initMap;
-    </script>
-  </head>
-  <body>
-    <div class="custom-overlay">
-      📍 ${isCOD ? "COD Meetup" : "Dispatch"}: ${routeInfo.distanceKm} km (~${routeInfo.estimatedMinutes} mins)
-    </div>
-    <div id="map"></div>
-  </body>
-</html>
-`;
+  // Generate Leaflet & OpenStreetMap Interactive Route Viewport
+  const mapHtml = generateRouteMapHtml({
+    originLat: sellerLat,
+    originLng: sellerLng,
+    originLabel: sellerLabel,
+    destLat: routeInfo.lat,
+    destLng: routeInfo.lng,
+    destName: routeInfo.name,
+    destAddress: routeInfo.address,
+    distanceKm: routeInfo.distanceKm,
+    estimatedMinutes: routeInfo.estimatedMinutes,
+    isCOD,
+    mapType,
+  });
 
   return (
     <Modal
@@ -199,12 +124,12 @@ export default function GoogleDeliveryMapModal({
             <View style={styles.headerTitleGroup}>
               <View style={[styles.gmapBadge, isCOD && styles.codBadge]}>
                 <MaterialCommunityIcons
-                  name={isCOD ? "handshake-outline" : "google-maps"}
+                  name={isCOD ? "handshake-outline" : "map-marker-path"}
                   size={16}
                   color={colors.onBrandPrimary}
                 />
                 <Text style={styles.gmapBadgeText}>
-                  {isCOD ? "VERIFIED COD MEETING POINT" : "GOOGLE MAPS TRANSIT ROUTE"}
+                  {isCOD ? "VERIFIED COD MEETING POINT" : "OPENSTREETMAP TRANSIT ROUTE"}
                 </Text>
               </View>
               <Text style={styles.title}>
@@ -266,7 +191,7 @@ export default function GoogleDeliveryMapModal({
           <View style={styles.mapFrame}>
             {Platform.OS === "web" ? (
               <iframe
-                title="Google Delivery Route Map"
+                title="Google Maps Delivery Preview"
                 srcDoc={mapHtml}
                 style={{ width: "100%", height: "100%", border: 0 }}
               />
@@ -320,7 +245,7 @@ export default function GoogleDeliveryMapModal({
               <View style={styles.statBox}>
                 <Text style={styles.statLabel}>Freight Fee</Text>
                 <Text style={styles.statValue}>
-                  {isCOD ? "FREE (COD)" : formatIDR(deliveryFee)}
+                  {isCOD ? "FREE (COD)" : formatIDR(resolvedDeliveryFee)}
                 </Text>
               </View>
             </View>

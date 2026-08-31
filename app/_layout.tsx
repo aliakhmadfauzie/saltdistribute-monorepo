@@ -8,6 +8,7 @@ import { useIconFonts } from "../src/hooks/use-icon-fonts";
 import { AuthProvider } from "../src/context/AuthContext";
 import { AppProvider } from "../src/context/AppContext";
 import { I18nProvider } from "../src/i18n";
+import InAppNotificationToast from "../src/components/InAppNotificationToast";
 
 LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -31,6 +32,7 @@ export default function RootLayout() {
         <AuthProvider>
           <AppProvider>
             <Stack screenOptions={{ headerShown: false }} />
+            <InAppNotificationToast />
           </AppProvider>
         </AuthProvider>
       </I18nProvider>

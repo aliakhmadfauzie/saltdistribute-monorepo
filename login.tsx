@@ -9,6 +9,7 @@ import { colors, radius, spacing, type } from "@/src/theme";
 import { useAuth } from "@/src/api";
 import { useI18n } from "@/src/i18n";
 import LangToggle from "@/src/components/LangToggle";
+import GuestOrderModal from "@/src/components/GuestOrderModal";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [guestModalOpen, setGuestModalOpen] = useState(false);
 
   const submit = async () => {
     setError(null);
@@ -94,6 +96,27 @@ export default function LoginScreen() {
           {busy ? <ActivityIndicator color={colors.onBrandPrimary} /> : <Text style={styles.ctaText}>{t("login")}</Text>}
         </Pressable>
 
+        {/* OR DIVIDER */}
+        <View style={styles.orRow}>
+          <View style={styles.orLine} />
+          <Text style={styles.orText}>ATAU / OR</Text>
+          <View style={styles.orLine} />
+        </View>
+
+        {/* GUEST QUICK ORDER BUTTON */}
+        <Pressable
+          testID="guest-order-open-btn-root"
+          style={({ pressed }) => [styles.guestOrderBtn, pressed && { opacity: 0.9 }]}
+          onPress={() => setGuestModalOpen(true)}
+        >
+          <MaterialCommunityIcons name="lightning-bolt" size={20} color="#D97706" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.guestBtnTitle}>⚡ {t("guestQuickOrder")}</Text>
+            <Text style={styles.guestBtnSubtitle}>{t("guestOrderSubtitle")}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.brandPrimary} />
+        </Pressable>
+
         <View style={styles.helperRow}>
           <Text style={styles.helper}>{t("no_account")} </Text>
           <Link href="/(auth)/register" asChild>
@@ -109,6 +132,9 @@ export default function LoginScreen() {
           <Text style={styles.seedLine}>Buyer: buyer@saltdistribute.id / buyer123</Text>
         </View>
       </ScrollView>
+
+      {/* Guest Modal */}
+      <GuestOrderModal visible={guestModalOpen} onClose={() => setGuestModalOpen(false)} />
     </KeyboardAvoidingView>
   );
 }
@@ -148,6 +174,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctaText: { color: colors.onBrandPrimary, fontSize: type.lg, fontWeight: "800" },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: spacing.xs,
+    gap: spacing.sm,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  orText: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onSurfaceSecondary,
+    letterSpacing: 0.5,
+  },
+  guestOrderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1.5,
+    borderColor: colors.brandPrimary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  guestBtnTitle: {
+    fontSize: type.base,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+  },
+  guestBtnSubtitle: {
+    fontSize: type.xs,
+    color: colors.onSurfaceSecondary,
+  },
   helperRow: { flexDirection: "row", justifyContent: "center", marginTop: spacing.md },
   helper: { color: colors.onSurfaceSecondary, fontSize: type.base },
   helperLink: { color: colors.brandPrimary, fontSize: type.base, fontWeight: "800" },

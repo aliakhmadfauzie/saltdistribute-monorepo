@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,12 @@ import {
   Pressable,
   Modal,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
@@ -32,11 +35,28 @@ const REJECTION_PRESETS = [
 
 export default function AdminOrdersScreen() {
   const insets = useSafeAreaInsets();
-  const { bookings, acceptBooking, rejectBooking, verifyPayment, markCompleted } = useApp();
+  const { bookings, acceptBooking, rejectBooking, verifyPayment, markCompleted, isRefreshing, refreshAllData } = useApp();
   const { t } = useI18n();
 
   const [activeTab, setActiveTab] = useState<AdminPipelineTab>("PENDING");
   const [selectedChatBooking, setSelectedChatBooking] = useState<Booking | null>(null);
+  const [lastRefreshedTime, setLastRefreshedTime] = useState<string>(
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+  );
+
+  // Auto-refresh from Firestore whenever screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshAllData().then(() => {
+        setLastRefreshedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+      });
+    }, [])
+  );
+
+  const handleManualRefresh = async () => {
+    await refreshAllData();
+    setLastRefreshedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  };
 
   // Reject reason dialog state
   const [rejectDialogVisible, setRejectDialogVisible] = useState(false);
@@ -95,11 +115,36 @@ export default function AdminOrdersScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={styles.headerTitleBox}>
             <AppLogo variant="badge" size="sm" theme="light" />
-            <Text style={styles.headerTitle}>{t("pipelineTitle")}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {t("pipelineTitle")}
+              </Text>
+              <Text style={styles.syncSubtitle} numberOfLines={1}>
+                🔥 Synced &bull; {lastRefreshedTime}
+              </Text>
+            </View>
           </View>
-          <LangToggle />
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Refresh latest orders from Cloud Firestore"
+              style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.8 }]}
+              onPress={handleManualRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <ActivityIndicator size="small" color={colors.onBrandPrimary} />
+              ) : (
+                <Ionicons name="refresh" size={14} color={colors.onBrandPrimary} />
+              )}
+              <Text style={styles.refreshBtnText}>
+                {isRefreshing ? "..." : "Refresh"}
+              </Text>
+            </Pressable>
+            <LangToggle />
+          </View>
         </View>
 
         {/* Kanban Tabs */}
@@ -170,9 +215,17 @@ export default function AdminOrdersScreen() {
         contentContainerStyle={[
           styles.body,
           layout.centeredContainer,
-          { paddingBottom: insets.bottom + 140 },
+          { paddingBottom: insets.bottom + 40 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleManualRefresh}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
+        }
       >
         {displayedList.length === 0 ? (
           <View style={styles.emptyCard}>
@@ -286,10 +339,44 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  headerTitleBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
-    fontSize: type.xl,
+    fontSize: type.lg,
     fontWeight: "800",
+    color: colors.onBrandPrimary,
+  },
+  syncSubtitle: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 1,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs + 2,
+  },
+  refreshBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    minHeight: 34,
+  },
+  refreshBtnText: {
+    fontSize: type.xs,
+    fontWeight: "700",
     color: colors.onBrandPrimary,
   },
   tabScrollContent: {

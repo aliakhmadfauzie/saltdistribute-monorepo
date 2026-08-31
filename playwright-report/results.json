@@ -1,0 +1,260 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\AL_AAF\\Project\\Orrder management spp\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/suites/07_admin_workflow.spec.ts",
+      "--project=Mobile-PWA"
+    ],
+    "configFile": "C:\\Users\\AL_AAF\\Project\\Orrder management spp\\playwright.config.ts",
+    "rootDir": "C:/Users/AL_AAF/Project/Orrder management spp/e2e/suites",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/AL_AAF/Project/Orrder management spp/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Mobile-PWA",
+        "name": "Mobile-PWA",
+        "testDir": "C:/Users/AL_AAF/Project/Orrder management spp/e2e/suites",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/AL_AAF/Project/Orrder management spp/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Mobile-iPhone",
+        "name": "Mobile-iPhone",
+        "testDir": "C:/Users/AL_AAF/Project/Orrder management spp/e2e/suites",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npx serve -s dist -l 8082",
+      "url": "http://localhost:8082",
+      "reuseExistingServer": true,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "07_admin_workflow.spec.ts",
+      "file": "07_admin_workflow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "7. Admin Management Workflow",
+          "file": "07_admin_workflow.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Dashboard & Metrics: Displays revenue summary, active orders, and inventory overview",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19464,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-31T17:56:48.483Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-631314700817ae4bd7af",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Inventory Management: Lists warehouse stock reserve and restock logs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19476,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-31T17:57:08.693Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-194ac63d77266a4573ee",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 18,
+              "column": 7
+            },
+            {
+              "title": "Customer Directory: Displays registered buyers and their statuses",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22154,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-31T17:57:28.200Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-8beb406b656c76c84c72",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Floating Admin Action Button: Opens speed dial overlay and triggers actions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14105,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-31T17:57:50.387Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-f32d02d7b591daaa3e2e",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 41,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-08-31T17:56:44.134Z",
+    "duration": 80885.463,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

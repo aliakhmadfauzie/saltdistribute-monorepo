@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable, Switch, Alert, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useState, useCallback } from "react";
+import { View, Text, ScrollView, StyleSheet, Pressable, Switch, Alert, ActivityIndicator, RefreshControl } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
@@ -13,13 +13,14 @@ import ProofUploadModal from "../../src/components/ProofUploadModal";
 import ChatModal from "../../src/components/ChatModal";
 import LangToggle from "../../src/components/LangToggle";
 import AppLogo from "../../src/components/AppLogo";
+import NotificationButton from "../../src/components/NotificationButton";
 import { Booking } from "../../src/types";
 import { getDeviceCurrentLocation } from "../../src/services/locationService";
 
 export default function BuyerOrdersScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { bookings, uploadPaymentProof, updateBuyerLiveLocation, toggleLocationSharing } = useApp();
+  const { bookings, uploadPaymentProof, updateBuyerLiveLocation, toggleLocationSharing, isRefreshing, refreshAllData } = useApp();
   const { currentUser } = useAuth();
   const { t } = useI18n();
 
@@ -28,9 +29,16 @@ export default function BuyerOrdersScreen() {
   const [selectedChatBooking, setSelectedChatBooking] = useState<Booking | null>(null);
   const [isCapturingLocation, setIsCapturingLocation] = useState(false);
 
-  const myBookings = bookings.filter((b) => b.buyerId === currentUser?.userId);
+  // Auto-refresh when buyer enters this screen
+  useFocusEffect(
+    useCallback(() => {
+      refreshAllData().catch(() => {});
+    }, [])
+  );
 
-  const activeBookings = myBookings.filter(
+  const buyerBookings = bookings.filter((b) => b.buyerId === currentUser?.userId);
+
+  const activeBookings = buyerBookings.filter(
     (b) =>
       b.status === "PENDING_CONFIRMATION" ||
       b.status === "AWAITING_PAYMENT" ||
@@ -38,7 +46,7 @@ export default function BuyerOrdersScreen() {
       b.status === "CONFIRMED_DELIVERING"
   );
 
-  const pastBookings = myBookings.filter(
+  const pastBookings = buyerBookings.filter(
     (b) =>
       b.status === "COMPLETED" ||
       b.status === "CANCELLED_UNPAID" ||
@@ -76,11 +84,28 @@ export default function BuyerOrdersScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
             <AppLogo variant="badge" size="sm" theme="light" />
-            <Text style={styles.headerTitle}>{t("ordersTitle")}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{t("ordersTitle")}</Text>
           </View>
-          <LangToggle />
+          <View style={styles.headerRightActions}>
+            <NotificationButton />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Refresh status pesanan dari cloud"
+              style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.8 }]}
+              onPress={() => refreshAllData()}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <ActivityIndicator size="small" color={colors.onBrandPrimary} />
+              ) : (
+                <Ionicons name="refresh" size={14} color={colors.onBrandPrimary} />
+              )}
+              <Text style={styles.refreshBtnText}>{isRefreshing ? "..." : "Refresh"}</Text>
+            </Pressable>
+            <LangToggle />
+          </View>
         </View>
 
         {/* Filter Tabs */}
@@ -117,6 +142,14 @@ export default function BuyerOrdersScreen() {
           { paddingBottom: insets.bottom + 140 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshAllData}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
+        }
       >
         {/* Live GPS Dispatch Telemetry Card for Active Orders */}
         {activeTab === "ACTIVE" && primaryActiveBooking && (
@@ -225,6 +258,26 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: type.xl,
     fontWeight: "800",
+    color: colors.onBrandPrimary,
+  },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs + 2,
+  },
+  refreshBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    minHeight: 34,
+  },
+  refreshBtnText: {
+    fontSize: type.xs,
+    fontWeight: "700",
     color: colors.onBrandPrimary,
   },
   tabContainer: {

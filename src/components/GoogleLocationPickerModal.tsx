@@ -21,6 +21,7 @@ import {
   calculateRouteMetrics,
   LocationPreset,
 } from "../services/mapsService";
+import { generateLocationPickerMapHtml } from "../services/leafletService";
 import { getDeviceCurrentLocation } from "../services/locationService";
 
 export interface SelectedLocationResult {
@@ -69,16 +70,41 @@ export default function GoogleLocationPickerModal({
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
 
-  // Sync state when opened
+  // Sync state when opened & auto-detect device GPS if no initial coordinates provided
   useEffect(() => {
     if (visible) {
       if (initialLat && initialLng) {
         setLat(initialLat);
         setLng(initialLng);
+      } else {
+        // Auto acquire device GPS immediately
+        getDeviceCurrentLocation().then((loc) => {
+          if (loc && loc.latitude && loc.longitude) {
+            setLat(Number(loc.latitude.toFixed(5)));
+            setLng(Number(loc.longitude.toFixed(5)));
+            if (loc.address) {
+              setAddressInput(loc.address);
+            }
+          }
+        });
       }
       if (initialAddress) {
         setAddressInput(initialAddress);
       }
+    }
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const handleMessage = (event: MessageEvent) => {
+        try {
+          const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+          if (data && data.type === "POSITION_CHANGED" && data.lat && data.lng) {
+            setLat(Number(data.lat.toFixed(5)));
+            setLng(Number(data.lng.toFixed(5)));
+          }
+        } catch {}
+      };
+      window.addEventListener("message", handleMessage);
+      return () => window.removeEventListener("message", handleMessage);
     }
   }, [visible, initialLat, initialLng, initialAddress]);
 
@@ -99,9 +125,7 @@ export default function GoogleLocationPickerModal({
         setLat(Number(loc.latitude.toFixed(5)));
         setLng(Number(loc.longitude.toFixed(5)));
         setActivePresetId(null);
-        if (!addressInput.trim() || addressInput === initialAddress) {
-          setAddressInput(`Koordinat GPS: ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)} (Medan Area)`);
-        }
+        setAddressInput(loc.address || `Koordinat GPS: ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`);
       }
     } catch (e) {
       console.warn("Error acquiring GPS", e);
@@ -124,132 +148,16 @@ export default function GoogleLocationPickerModal({
     onClose();
   };
 
-  // Google Maps Interactive HTML document
-  const pickerMapHtml = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #map { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      .hud-card {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 8px 12px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 12px;
-        font-weight: 700;
-        color: #006C4C;
-        z-index: 1000;
-      }
-      .instructions {
-        font-size: 11px;
-        color: #4B5563;
-        font-weight: normal;
-      }
-    </style>
-    <script src="https://maps.googleapis.com/maps/api/js?key=DEMO_MAP_ID&v=weekly"></script>
-    <script>
-      let map, marker, hubMarker, polyline;
-      const hubPos = { lat: ${sellerLat}, lng: ${sellerLng} };
-      let currentPos = { lat: ${lat}, lng: ${lng} };
-
-      function initMap() {
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: currentPos,
-          zoom: 13,
-          mapTypeId: "${mapType}",
-          zoomControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-        });
-
-        // Seller Device Marker
-        hubMarker = new google.maps.Marker({
-          position: hubPos,
-          map: map,
-          title: "${sellerLabel}",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
-          }
-        });
-
-        // Interactive Customer Destination Pin
-        marker = new google.maps.Marker({
-          position: currentPos,
-          map: map,
-          draggable: true,
-          animation: google.maps.Animation.DROP,
-          title: "Selected Delivery Point",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
-          }
-        });
-
-        // Route line from seller origin to destination
-        polyline = new google.maps.Polyline({
-          path: [hubPos, currentPos],
-          geodesic: true,
-          strokeColor: "#006C4C",
-          strokeOpacity: 0.7,
-          strokeWeight: 3,
-          map: map
-        });
-
-        // Map Click Listener
-        map.addListener("click", (e) => {
-          updateMarker(e.latLng.lat(), e.latLng.lng());
-        });
-
-        // Drag End Listener
-        marker.addListener("dragend", (e) => {
-          updateMarker(e.latLng.lat(), e.latLng.lng());
-        });
-      }
-
-      function updateMarker(newLat, newLng) {
-        currentPos = { lat: newLat, lng: newLng };
-        marker.setPosition(currentPos);
-        polyline.setPath([hubPos, currentPos]);
-        
-        // Notify Parent / React Native if Web Messaging available
-        try {
-          if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'POSITION_CHANGED',
-              lat: newLat,
-              lng: newLng
-            }));
-          }
-        } catch(err) {}
-      }
-
-      window.onload = initMap;
-    </script>
-  </head>
-  <body>
-    <div class="hud-card">
-      <div>
-        <span>📍 Titik Pengiriman Terpilih</span>
-        <div class="instructions">Ketuk peta untuk memindahkan pin lokasi</div>
-      </div>
-      <span style="background:#006C4C; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px;">
-        ${metrics.distanceKm} km dari Penjual
-      </span>
-    </div>
-    <div id="map"></div>
-  </body>
-</html>
-`;
+  // Generate Leaflet & OpenStreetMap Location Picker Map HTML
+  const pickerMapHtml = generateLocationPickerMapHtml({
+    originLat: sellerLat,
+    originLng: sellerLng,
+    originLabel: sellerLabel,
+    currentLat: lat,
+    currentLng: lng,
+    distanceKm: metrics.distanceKm,
+    mapType,
+  });
 
   return (
     <Modal
@@ -378,7 +286,7 @@ export default function GoogleLocationPickerModal({
                       setLat(Number(data.lat.toFixed(5)));
                       setLng(Number(data.lng.toFixed(5)));
                     }
-                  } catch (e) {}
+                  } catch {}
                 }}
               />
             )}

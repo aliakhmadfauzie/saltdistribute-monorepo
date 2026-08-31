@@ -29,6 +29,7 @@ export default function RegisterScreen() {
   const { registerBuyer } = useAuth();
 
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -49,8 +50,9 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!fullName || !email || !phone || !password) {
-      setError("Please complete all required fields.");
+    const finalUsername = username.trim().toLowerCase() || email.split("@")[0].toLowerCase();
+    if (!fullName || !finalUsername || !email || !phone || !password) {
+      setError("Please complete all required fields including Username.");
       return;
     }
     setError(null);
@@ -58,7 +60,8 @@ export default function RegisterScreen() {
     try {
       await registerBuyer({
         name: fullName.trim(),
-        username: email.split("@")[0].toLowerCase(),
+        username: finalUsername,
+        password: password.trim(),
         phoneNumber: phone.trim(),
         email: email.trim().toLowerCase(),
         companyName: companyName.trim(),
@@ -115,6 +118,18 @@ export default function RegisterScreen() {
             value={fullName}
             onChangeText={setFullName}
             placeholder="Budi Santoso"
+            placeholderTextColor={colors.muted}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Username *</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={(val) => setUsername(val.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+            autoCapitalize="none"
+            placeholder="e.g. budi_jaya"
             placeholderTextColor={colors.muted}
           />
         </View>

@@ -1,0 +1,23 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Receipts folder: allow read and write
+    match /receipts/{bookingId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 10 * 1024 * 1024; // max 10MB
+    }
+
+    // Chat attachments
+    match /chat_attachments/{bookingId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Store branding & products
+    match /store_branding/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

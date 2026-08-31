@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
 import { useApp, formatIDR, formatGrams } from "../../src/api";
@@ -22,11 +24,17 @@ import AppLogo from "../../src/components/AppLogo";
 
 export default function AdminInventoryScreen() {
   const insets = useSafeAreaInsets();
-  const { inventory, updateInventoryStockStatus, updateBasePrice, restockLogs } = useApp();
+  const { inventory, updateInventoryStockStatus, updateBasePrice, restockLogs, isRefreshing, refreshAllData } = useApp();
   const { t } = useI18n();
 
   const [priceInput, setPriceInput] = useState(inventory.basePricePerGram.toString());
   const [restockModalVisible, setRestockModalVisible] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshAllData().catch(() => {});
+    }, [])
+  );
 
   const handleSavePrice = () => {
     const p = parseFloat(priceInput);
@@ -46,9 +54,9 @@ export default function AdminInventoryScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
             <AppLogo variant="badge" size="sm" theme="light" />
-            <Text style={styles.headerTitle}>{t("inventoryManager")}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{t("inventoryManager")}</Text>
           </View>
           <LangToggle />
         </View>
@@ -58,41 +66,41 @@ export default function AdminInventoryScreen() {
         contentContainerStyle={[
           styles.body,
           layout.centeredContainer,
-          { paddingBottom: insets.bottom + 140 },
+          { paddingBottom: insets.bottom + 40 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshAllData}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
+        }
       >
         {/* Stock Switcher */}
         <View style={styles.card}>
           <View style={styles.cardRow}>
-            <View>
+            <View style={{ flex: 1, paddingRight: spacing.sm }}>
               <Text style={styles.cardTitle}>{t("toggleStock")}</Text>
               <Text style={styles.cardSubtitle}>
-                Current Balance:{" "}
-                <Text style={styles.highlightText}>
-                  {formatGrams(inventory.availableQuantityGram)}
-                </Text>
+                Current Balance: <Text style={styles.highlightText}>{formatGrams(inventory.availableQuantityGram)}</Text>
               </Text>
             </View>
             <Switch
-              accessibilityRole="switch"
-              accessibilityLabel={t("toggleStock")}
               value={inventory.isStockAvailable}
               onValueChange={updateInventoryStockStatus}
-              trackColor={{ false: colors.border, true: colors.brandSecondary }}
-              thumbColor={inventory.isStockAvailable ? colors.brandPrimary : colors.muted}
+              trackColor={{ false: colors.muted, true: colors.brandPrimary }}
+              thumbColor={colors.cardBg}
             />
           </View>
         </View>
 
-        {/* Base Price Config Card */}
+        {/* Base Price Config */}
         <View style={styles.card}>
-          <View style={styles.sectionHeaderRow}>
-            <MaterialCommunityIcons name="currency-usd" size={22} color={colors.brandPrimary} />
-            <Text style={styles.cardTitle}>{t("basePricePerGram")}</Text>
-          </View>
+          <Text style={styles.cardTitle}>{t("basePricePerGram")}</Text>
           <Text style={styles.cardSubtitle}>
-            This rate feeds dynamically into tier percentage volume calculations.
+            Wholesale base calculation rate before tier volume discounts
           </Text>
 
           <View style={styles.priceInputRow}>
@@ -102,14 +110,16 @@ export default function AdminInventoryScreen() {
               value={priceInput}
               onChangeText={setPriceInput}
               keyboardType="numeric"
-              placeholder="2.0"
+              placeholder="e.g. 800000"
+              placeholderTextColor={colors.muted}
             />
             <Text style={styles.unitSuffix}>/ gram</Text>
           </View>
 
+          {/* Quick Real-Time Pricing Math Helper */}
           <View style={styles.rateCalculationBox}>
             <Text style={styles.rateCalculationText}>
-              • Rate per Kilogram: <Text style={styles.rateHighlight}>{formatIDR((parseFloat(priceInput) || 0) * 1000)} / kg</Text>
+              • Rate per Kilogram (1,000 g): <Text style={styles.rateHighlight}>{formatIDR((parseFloat(priceInput) || 0) * 1000)} / kg</Text>
             </Text>
             <Text style={styles.rateCalculationText}>
               • Rate per Metric Ton: <Text style={styles.rateHighlight}>{formatIDR((parseFloat(priceInput) || 0) * 1000000)} / Ton</Text>
@@ -122,7 +132,7 @@ export default function AdminInventoryScreen() {
             style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.9 }]}
             onPress={handleSavePrice}
           >
-            <MaterialCommunityIcons name="content-save-outline" size={20} color={colors.onBrandPrimary} />
+            <Ionicons name="checkmark-done" size={18} color={colors.onBrandPrimary} />
             <Text style={styles.saveBtnText}>{t("save")}</Text>
           </Pressable>
         </View>
@@ -130,9 +140,9 @@ export default function AdminInventoryScreen() {
         {/* Restock Action Card */}
         <View style={styles.card}>
           <View style={styles.restockHeaderRow}>
-            <View>
-              <Text style={styles.cardTitle}>Inbound Warehouse Restocks</Text>
-              <Text style={styles.cardSubtitle}>Record shipments & calculate COGS automatically</Text>
+            <View style={{ flex: 1, minWidth: 150 }}>
+              <Text style={styles.cardTitle}>Inbound Restocks</Text>
+              <Text style={styles.cardSubtitle}>Auto COGS & stock tracking</Text>
             </View>
             <Pressable
               accessibilityRole="button"
@@ -140,7 +150,7 @@ export default function AdminInventoryScreen() {
               style={({ pressed }) => [styles.addBatchBtn, pressed && { opacity: 0.9 }]}
               onPress={() => setRestockModalVisible(true)}
             >
-              <MaterialCommunityIcons name="plus" size={18} color={colors.onBrandPrimary} />
+              <Ionicons name="add-circle-outline" size={16} color={colors.onBrandPrimary} />
               <Text style={styles.addBatchText}>Log Batch</Text>
             </Pressable>
           </View>

@@ -20,8 +20,9 @@ import {
   calculateRouteMetrics,
   getGoogleMapsNavigationUrl,
   getWazeNavigationUrl,
-  getDirectGoogleMapsLocationUrl,
 } from "../services/mapsService";
+import { getCachedSellerLocation } from "../services/locationService";
+import { generateCustomerLocationMapHtml } from "../services/leafletService";
 import WhatsAppButton from "./WhatsAppButton";
 
 interface CustomerLocationModalProps {
@@ -46,9 +47,10 @@ export default function CustomerLocationModal({
   if (!user) return null;
 
   const adminUser = allUsers.find((u) => u.role === "admin");
-  const sellerLat = sellerOriginLat || (currentUser?.role === "admin" ? currentUser.latitude : adminUser?.latitude) || DEFAULT_SELLER_LOCATION.lat;
-  const sellerLng = sellerOriginLng || (currentUser?.role === "admin" ? currentUser.longitude : adminUser?.longitude) || DEFAULT_SELLER_LOCATION.lng;
-  const sellerLabel = "Lokasi Penjual (Admin Device GPS)";
+  const cachedSeller = getCachedSellerLocation();
+  const sellerLat = sellerOriginLat || cachedSeller?.latitude || (currentUser?.role === "admin" ? currentUser.latitude : adminUser?.latitude) || DEFAULT_SELLER_LOCATION.lat;
+  const sellerLng = sellerOriginLng || cachedSeller?.longitude || (currentUser?.role === "admin" ? currentUser.longitude : adminUser?.longitude) || DEFAULT_SELLER_LOCATION.lng;
+  const sellerLabel = "Lokasi Penjual (Device GPS)";
 
   // Resolve customer coordinates or fall back to KIM 2 / Medan default
   const customerLat = user.latitude || 3.7042;
@@ -67,123 +69,19 @@ export default function CustomerLocationModal({
     Linking.openURL(url).catch((err) => console.warn("Could not open Waze", err));
   };
 
-  const handleOpenDirectLocation = () => {
-    const url = getDirectGoogleMapsLocationUrl(customerLat, customerLng, user.companyName || user.name);
-    Linking.openURL(url).catch((err) => console.warn("Could not open Google Maps", err));
-  };
-
-  const mapHtml = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #map { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      .badge-origin {
-        background: #006C4C;
-        color: #ffffff;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: bold;
-      }
-      .badge-dest {
-        background: #0284C7;
-        color: #ffffff;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: bold;
-      }
-      .hud-route {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(0, 30, 20, 0.92);
-        color: #ffffff;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 700;
-        z-index: 10;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-      }
-    </style>
-    <script src="https://maps.googleapis.com/maps/api/js?key=DEMO_MAP_ID&v=weekly"></script>
-    <script>
-      let map;
-      function initMap() {
-        const origin = { lat: ${sellerLat}, lng: ${sellerLng} };
-        const dest = { lat: ${customerLat}, lng: ${customerLng} };
-
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(dest);
-
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: dest,
-          zoom: 12,
-          mapTypeId: "${mapType}",
-          zoomControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-        });
-
-        // Origin - Seller Device Location
-        const originMarker = new google.maps.Marker({
-          position: origin,
-          map: map,
-          title: "${sellerLabel}",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
-          }
-        });
-
-        const originInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-origin">SELLER DEVICE</span><br/><b>${sellerLabel}</b><br/>Titik Berangkat Penjual</div>'
-        });
-        originMarker.addListener("click", () => originInfo.open(map, originMarker));
-
-        // Customer Destination Marker
-        const destMarker = new google.maps.Marker({
-          position: dest,
-          map: map,
-          title: "${user.name} - ${user.companyName || ""}",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-          }
-        });
-
-        const destInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-dest">CUSTOMER LOCATION</span><br/><b>${user.name}</b><br/>${user.companyName || "Wholesale Buyer"}<br/><small>${customerAddress}</small></div>'
-        });
-        destMarker.addListener("click", () => destInfo.open(map, destMarker));
-        destInfo.open(map, destMarker);
-
-        // Transit Polyline
-        const routePath = new google.maps.Polyline({
-          path: [origin, dest],
-          geodesic: true,
-          strokeColor: "#0284C7",
-          strokeOpacity: 0.85,
-          strokeWeight: 4,
-          map: map,
-        });
-
-        map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-      }
-      window.onload = initMap;
-    </script>
-  </head>
-  <body>
-    <div class="hud-route">
-      🚚 ${metrics.distanceKm} km (~${metrics.estimatedMinutes} mins transit dari Hub)
-    </div>
-    <div id="map"></div>
-  </body>
-</html>
-`;
+  const mapHtml = generateCustomerLocationMapHtml({
+    sellerLat,
+    sellerLng,
+    sellerLabel,
+    customerLat,
+    customerLng,
+    customerName: user.name,
+    companyName: user.companyName,
+    customerAddress,
+    distanceKm: metrics.distanceKm,
+    estimatedMinutes: metrics.estimatedMinutes,
+    mapType,
+  });
 
   return (
     <Modal

@@ -1,0 +1,49 @@
+{
+  "name": "SaltDistribute - Platform Distribusi Garam",
+  "short_name": "SaltDistribute",
+  "description": "Industrial-Grade B2B Salt Wholesale Distribution & Real-Time Logistics Tracking Platform",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8FAF9",
+  "theme_color": "#006C4C",
+  "lang": "id",
+  "dir": "ltr",
+  "categories": ["business", "logistics", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/images/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/adaptive-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Katalog Garam",
+      "short_name": "Katalog",
+      "description": "Lihat stok dan pesan garam grosir",
+      "url": "/",
+      "icons": [{ "src": "/assets/images/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pesanan Saya",
+      "short_name": "Pesanan",
+      "description": "Lacak status pengiriman pesanan",
+      "url": "/orders",
+      "icons": [{ "src": "/assets/images/icon.png", "sizes": "192x192" }]
+    }
+  ]
+}

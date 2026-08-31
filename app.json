@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "SaltDistribute - Platform Distribusi Garam",
+    "slug": "saltdistribute",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "saltdistribute",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -15,12 +15,17 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#006C4C"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.emergent.saltdistribute.rydu7m"
     },
     "web": {
+      "name": "SaltDistribute - Platform Distribusi Garam Industri & Grosir",
+      "shortName": "SaltDistribute",
+      "description": "B2B Wholesale Salt Order Management & Delivery System",
+      "themeColor": "#006C4C",
+      "backgroundColor": "#F8FAF9",
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"

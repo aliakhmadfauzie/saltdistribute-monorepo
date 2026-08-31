@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useState, useCallback } from "react";
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert, RefreshControl } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
@@ -18,10 +18,23 @@ import { calculateRouteMetrics } from "../../src/services/mapsService";
 export default function AdminUsersScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { allUsers, toggleUserStatus, signOut, switchUser } = useAuth();
+  const { allUsers, toggleUserStatus, signOut, switchUser, refreshUsers } = useAuth();
   const { t } = useI18n();
 
   const [selectedCustomerForMap, setSelectedCustomerForMap] = useState<User | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUsers().catch(() => {});
+    }, [])
+  );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshUsers();
+    setIsRefreshing(false);
+  };
 
   const buyers = allUsers.filter((u) => u.role === "buyer");
 
@@ -30,8 +43,12 @@ export default function AdminUsersScreen() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    router.replace("/(auth)/login");
+    try {
+      await signOut();
+      router.replace("/(auth)/login");
+    } catch (e) {
+      console.warn("Logout error:", e);
+    }
   };
 
   const handleSwitchToBuyer = () => {
@@ -47,11 +64,22 @@ export default function AdminUsersScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
             <AppLogo variant="badge" size="sm" theme="light" />
-            <Text style={styles.headerTitle}>{t("userManagement")}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{t("userManagement")}</Text>
           </View>
-          <LangToggle />
+          <View style={styles.headerRightActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("logout")}
+              style={({ pressed }) => [styles.logoutHeaderBtn, pressed && { opacity: 0.85 }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.logoutHeaderText}>Logout</Text>
+            </Pressable>
+            <LangToggle />
+          </View>
         </View>
       </LinearGradient>
 
@@ -59,9 +87,17 @@ export default function AdminUsersScreen() {
         contentContainerStyle={[
           styles.body,
           layout.centeredContainer,
-          { paddingBottom: insets.bottom + 140 },
+          { paddingBottom: insets.bottom + 40 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
+        }
       >
         <Text style={styles.sectionHeader}>Registered Wholesale Buyers ({buyers.length})</Text>
 
@@ -75,11 +111,12 @@ export default function AdminUsersScreen() {
             <View key={user.userId} style={styles.userCard}>
               <View style={styles.userTop}>
                 <View style={styles.avatar}>
-                  <MaterialCommunityIcons name="account-tie" size={26} color={colors.onBrandPrimary} />
+                  <Ionicons name="person" size={22} color={colors.onBrandPrimary} />
                 </View>
                 <View style={styles.userInfo}>
                   <Text style={styles.userName}>{user.name}</Text>
                   <Text style={styles.userCompany}>{user.companyName || "Wholesale Buyer"}</Text>
+                  <Text style={styles.userHandle}>@{user.username || "buyer"}</Text>
                 </View>
                 <View
                   style={[
@@ -102,7 +139,7 @@ export default function AdminUsersScreen() {
                 <Text style={styles.detailLine}>📧 Email: {user.email}</Text>
                 <Text style={styles.detailLine}>📱 WhatsApp: {user.phoneNumber}</Text>
                 <View style={styles.locationDetailRow}>
-                  <MaterialCommunityIcons name="map-marker-radius" size={14} color={colors.brandPrimary} />
+                  <Ionicons name="location-outline" size={14} color={colors.brandPrimary} />
                   <Text style={styles.detailLineLocation} numberOfLines={1}>
                     {user.address || "Kawasan Belawan / Medan"} ({metrics.distanceKm} km dari Hub)
                   </Text>
@@ -118,8 +155,8 @@ export default function AdminUsersScreen() {
                   style={({ pressed }) => [styles.viewLocBtn, pressed && { opacity: 0.85 }]}
                   onPress={() => setSelectedCustomerForMap(user)}
                 >
-                  <MaterialCommunityIcons name="google-maps" size={16} color={colors.onBrandPrimary} />
-                  <Text style={styles.viewLocBtnText}>{t("viewCustomerLocation")}</Text>
+                  <Ionicons name="map-outline" size={16} color={colors.brandPrimary} />
+                  <Text style={styles.viewLocBtnText}>GPS Map</Text>
                 </Pressable>
 
                 <WhatsAppButton
@@ -131,28 +168,33 @@ export default function AdminUsersScreen() {
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Reset kata sandi ${user.name}`}
+                  accessibilityLabel="Reset Kata Sandi Pengguna"
                   style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.85 }]}
                   onPress={() => handleResetPassword(user.email)}
                 >
-                  <MaterialCommunityIcons name="key-change" size={16} color={colors.onSurface} />
-                  <Text style={styles.resetBtnText}>{t("resetPassword")}</Text>
+                  <Ionicons name="key-outline" size={16} color={colors.brandPrimary} />
+                  <Text style={styles.resetText}>{t("resetPassword")}</Text>
                 </Pressable>
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`${isActive ? "Suspend" : "Activate"} user ${user.name}`}
+                  accessibilityLabel={isActive ? "Tangguhkan Akun" : "Aktifkan Akun"}
                   style={({ pressed }) => [
                     styles.toggleBtn,
-                    isActive ? styles.toggleBtnSuspend : styles.toggleBtnActivate,
+                    isActive ? styles.btnSuspend : styles.btnActivate,
                     pressed && { opacity: 0.85 },
                   ]}
                   onPress={() => toggleUserStatus(user.userId)}
                 >
+                  <Ionicons
+                    name={isActive ? "pause-circle-outline" : "checkmark-circle-outline"}
+                    size={16}
+                    color={isActive ? colors.warning : colors.brandPrimary}
+                  />
                   <Text
                     style={[
                       styles.toggleText,
-                      isActive ? styles.toggleTextSuspend : styles.toggleTextActivate,
+                      isActive ? styles.textSuspend : styles.textActivate,
                     ]}
                   >
                     {isActive ? "Suspend" : "Activate"}
@@ -165,31 +207,20 @@ export default function AdminUsersScreen() {
 
         {/* Demo Switcher */}
         <View style={styles.demoCard}>
-          <Text style={styles.demoTitle}>🔄 Demo Switcher</Text>
+          <Text style={styles.demoTitle}>🔄 Workspace Switcher</Text>
           <Text style={styles.demoSubtitle}>
-            Switch back to Buyer portal to test ordering with volume discounts & proof upload.
+            Switch to the buyer portal to experience the purchasing workflow, COD meeting points, and live receipt upload.
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Switch to Buyer Portal"
+            accessibilityLabel="Switch to Buyer View"
             style={({ pressed }) => [styles.switchBtn, pressed && { opacity: 0.85 }]}
             onPress={handleSwitchToBuyer}
           >
-            <MaterialCommunityIcons name="cart-arrow-down" size={20} color={colors.onBrandPrimary} />
+            <Ionicons name="swap-horizontal" size={18} color={colors.onBrandPrimary} />
             <Text style={styles.switchBtnText}>Switch to Buyer Portal</Text>
           </Pressable>
         </View>
-
-        {/* Logout */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("logout")}
-          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.85 }]}
-          onPress={handleLogout}
-        >
-          <MaterialCommunityIcons name="logout" size={20} color={colors.error} />
-          <Text style={styles.logoutText}>{t("logout")}</Text>
-        </Pressable>
       </ScrollView>
 
       {/* Customer Google Maps Location Inspection Modal */}
@@ -206,7 +237,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
     ...shadows.md,
@@ -216,10 +247,59 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  logoutHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#DC2626",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    ...shadows.sm,
+  },
+  logoutHeaderText: {
+    color: "#FFFFFF",
+    fontSize: type.xs,
+    fontWeight: "800",
+  },
   headerTitle: {
-    fontSize: type.xl,
+    fontSize: type.lg,
     fontWeight: "800",
     color: colors.onBrandPrimary,
+  },
+  userHandle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+    marginTop: 1,
+  },
+  btnSuspend: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  btnActivate: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#A7F3D0",
+  },
+  textSuspend: {
+    color: "#DC2626",
+    fontSize: type.xs,
+    fontWeight: "700",
+  },
+  textActivate: {
+    color: "#059669",
+    fontSize: type.xs,
+    fontWeight: "700",
+  },
+  resetText: {
+    fontSize: type.xs,
+    fontWeight: "700",
+    color: colors.brandPrimary,
   },
   body: {
     paddingHorizontal: spacing.lg,

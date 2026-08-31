@@ -8,6 +8,7 @@ interface WhatsAppButtonProps {
   message?: string;
   label?: string;
   variant?: "primary" | "outline";
+  style?: any;
 }
 
 export default function WhatsAppButton({
@@ -15,6 +16,7 @@ export default function WhatsAppButton({
   message = "Halo Admin SaltDistribute, saya ingin menanyakan status pesanan saya.",
   label = "WhatsApp Admin",
   variant = "primary",
+  style,
 }: WhatsAppButtonProps) {
   const openWhatsApp = async () => {
     const cleanPhone = phone.replace(/[^0-9]/g, "");
@@ -37,6 +39,7 @@ export default function WhatsAppButton({
       style={({ pressed }) => [
         styles.btn,
         isPrimary ? styles.btnPrimary : styles.btnOutline,
+        style,
         pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
       ]}
       onPress={openWhatsApp}

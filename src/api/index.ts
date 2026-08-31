@@ -3,7 +3,10 @@ export { useApp, AppProvider } from "../context/AppContext";
 export * from "../types";
 
 export function formatIDR(amount: number): string {
-  return "Rp " + Math.round(amount).toLocaleString("id-ID");
+  if (isNaN(amount) || amount === null || amount === undefined) return "Rp 0";
+  const num = Math.round(Number(amount));
+  const formatted = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `Rp ${formatted}`;
 }
 
 export function formatGrams(grams: number): string {

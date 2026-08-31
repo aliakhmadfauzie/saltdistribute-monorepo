@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,11 @@ import {
   Alert,
   Platform,
   TextInput,
+  RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors, radius, spacing, type, shadows, layout } from "../../src/theme";
@@ -22,6 +23,9 @@ import LangToggle from "../../src/components/LangToggle";
 import RestockModal from "../../src/components/RestockModal";
 import OrderInvestigationModal from "../../src/components/OrderInvestigationModal";
 import AppLogo from "../../src/components/AppLogo";
+import FloatingAdminActions from "../../src/components/FloatingAdminActions";
+import NotificationButton from "../../src/components/NotificationButton";
+import NotificationBanner from "../../src/components/NotificationBanner";
 import {
   RevenueTrendChart,
   TierBreakdownChart,
@@ -36,9 +40,16 @@ type TimeRangeFilter = "today" | "7d" | "30d" | "all";
 export default function AdminDashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { inventory, updateInventoryStockStatus, financialMetrics, exportSalesCSV, bookings } = useApp();
-  const { currentUser, switchUser } = useAuth();
+  const { inventory, updateInventoryStockStatus, financialMetrics, exportSalesCSV, bookings, resetToDemoDefaults, isRefreshing, refreshAllData } = useApp();
+  const { currentUser, switchUser, logout } = useAuth();
   const { t } = useI18n();
+
+  // Auto-refresh when admin visits dashboard
+  useFocusEffect(
+    useCallback(() => {
+      refreshAllData().catch(() => {});
+    }, [])
+  );
 
   // State management
   const [timeRange, setTimeRange] = useState<TimeRangeFilter>("all");
@@ -199,6 +210,32 @@ export default function AdminDashboardScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace("/(auth)/login");
+    } catch (e) {
+      console.warn("Logout error:", e);
+    }
+  };
+
+  const handleResetDemo = () => {
+    Alert.alert(
+      "Reset Data Demo",
+      "Apakah Anda yakin ingin mengembalikan seluruh data inventaris dan pesanan ke default demo?",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Reset Sekarang",
+          style: "destructive",
+          onPress: async () => {
+            await resetToDemoDefaults();
+          },
+        },
+      ]
+    );
+  };
+
   const stockPercentage = Math.min(
     100,
     Math.round((inventory.availableQuantityGram / MAX_WAREHOUSE_CAPACITY_GRAMS) * 100)
@@ -212,36 +249,18 @@ export default function AdminDashboardScreen() {
         colors={[colors.brandPrimary, "#004D36"]}
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
-        <View style={[styles.headerRow, layout.centeredContainer]}>
-          <View style={styles.headerTitleGroup}>
-            <View style={styles.badgeRow}>
-              <AppLogo variant="badge" size="sm" theme="light" />
-              <View style={styles.executiveBadge}>
-                <MaterialCommunityIcons name="shield-crown" size={13} color={colors.onBrandPrimary} />
-                <Text style={styles.executiveBadgeText}>ADMIN</Text>
-              </View>
-              <View
-                style={[
-                  styles.statusChip,
-                  inventory.isStockAvailable ? styles.statusChipActive : styles.statusChipInactive,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.pulseDot,
-                    inventory.isStockAvailable ? styles.pulseDotActive : styles.pulseDotInactive,
-                  ]}
-                />
-                <Text style={styles.statusChipText}>
-                  {inventory.isStockAvailable ? "SALES ONLINE" : "SALES HALTED"}
-                </Text>
-              </View>
+        {/* Top Action Bar */}
+        <View style={[styles.topRow, layout.centeredContainer]}>
+          <View style={styles.topBarLeft}>
+            <AppLogo variant="badge" size="sm" theme="light" />
+            <View style={styles.executiveBadge}>
+              <Ionicons name="shield-checkmark" size={11} color={colors.onBrandPrimary} />
+              <Text style={styles.executiveBadgeText}>ADMIN</Text>
             </View>
-            <Text style={styles.headerTitle}>{t("analyticsHeader")}</Text>
-            <Text style={styles.headerSubtitle}>{t("analyticsSubtitle")}</Text>
           </View>
 
           <View style={styles.headerRightActions}>
+            <NotificationButton />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Switch to Buyer View"
@@ -251,10 +270,40 @@ export default function AdminDashboardScreen() {
                 router.replace("/(buyer)");
               }}
             >
-              <MaterialCommunityIcons name="account-switch" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.switchRoleBtnText}>Buyer View &rarr;</Text>
+              <Ionicons name="swap-horizontal" size={13} color={colors.onBrandPrimary} />
+              <Text style={styles.switchRoleBtnText}>Buyer</Text>
             </Pressable>
             <LangToggle />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Keluar Akun Admin"
+              style={({ pressed }) => [styles.logoutHeaderBtn, pressed && { opacity: 0.85 }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={13} color="#FFFFFF" />
+              <Text style={styles.logoutHeaderText}>Logout</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Title & Status Row */}
+        <View style={[styles.titleRow, layout.centeredContainer]}>
+          <Text style={styles.headerTitle} numberOfLines={1}>{t("analyticsHeader")}</Text>
+          <View
+            style={[
+              styles.statusChip,
+              inventory.isStockAvailable ? styles.statusChipActive : styles.statusChipInactive,
+            ]}
+          >
+            <View
+              style={[
+                styles.pulseDot,
+                inventory.isStockAvailable ? styles.pulseDotActive : styles.pulseDotInactive,
+              ]}
+            />
+            <Text style={styles.statusChipText}>
+              {inventory.isStockAvailable ? "ONLINE" : "HALTED"}
+            </Text>
           </View>
         </View>
 
@@ -294,7 +343,18 @@ export default function AdminDashboardScreen() {
           { paddingBottom: insets.bottom + 140 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshAllData}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
+        }
       >
+        {/* Real-time Push Notification & Official Announcement Banner */}
+        <NotificationBanner showPushPrompt={true} />
+
         {/* Low Stock Warning Alert */}
         {isLowStock && (
           <View style={styles.alertCard}>
@@ -595,6 +655,30 @@ export default function AdminDashboardScreen() {
           <View style={styles.actionGrid}>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Manajemen Admin & Sistem"
+              style={({ pressed }) => [styles.actionBtn, styles.mgmtBtn, pressed && { opacity: 0.9 }]}
+              onPress={() => router.push("/(admin)/management")}
+            >
+              <MaterialCommunityIcons name="shield-crown" size={22} color="#FFFFFF" />
+              <Text style={[styles.actionBtnText, { color: "#FFFFFF" }]}>
+                Manajemen Admin
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Store & App Setup"
+              style={({ pressed }) => [styles.actionBtn, styles.setupBtn, pressed && { opacity: 0.9 }]}
+              onPress={() => router.push("/(admin)/settings")}
+            >
+              <MaterialCommunityIcons name="store-cog" size={22} color="#FFFFFF" />
+              <Text style={[styles.actionBtnText, { color: "#FFFFFF" }]}>
+                {t("sellerSetupTitle") || "Store Setup"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={t("exportCSV")}
               style={({ pressed }) => [styles.actionBtn, styles.exportBtn, pressed && { opacity: 0.9 }]}
               onPress={handleExportCSV}
@@ -643,6 +727,19 @@ export default function AdminDashboardScreen() {
         cogsPerGram={financialMetrics.averageCostPerGram || 600000}
         onClose={() => setSelectedBookingForInvestigation(null)}
       />
+
+      {/* Expandable Speed Dial Floating Action Button (Pinned Bottom-Right) */}
+      <FloatingAdminActions
+        onOpenSettings={() => router.push("/(admin)/settings")}
+        onOpenRestock={() => router.push("/(admin)/management")}
+        onExportCSV={handleExportCSV}
+        onExportJSON={handleExportJSON}
+        onNavigateManagement={() => router.push("/(admin)/management")}
+        onNavigateUsers={() => router.push("/(admin)/users")}
+        onResetDemo={handleResetDemo}
+        onLogout={handleLogout}
+        bottomOffset={Platform.OS === "ios" ? 96 : 76}
+      />
     </View>
   );
 }
@@ -654,35 +751,47 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm + 2,
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
+    gap: spacing.xs + 2,
     ...shadows.md,
   },
-  headerRow: {
+  topRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  topBarLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs + 3,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
   headerRightActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs + 3,
   },
   switchRoleBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.22)",
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 6,
+    gap: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.35)",
+    borderColor: "rgba(255, 255, 255, 0.25)",
   },
   switchRoleBtnText: {
     fontSize: type.xs - 1,
-    fontWeight: "800",
+    fontWeight: "700",
     color: colors.onBrandPrimary,
   },
   headerTitleGroup: {
@@ -1152,6 +1261,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     ...shadows.sm,
   },
+  mgmtBtn: {
+    backgroundColor: "#059669",
+  },
+  setupBtn: {
+    backgroundColor: colors.brandSecondary,
+  },
   restockBtn: {
     backgroundColor: colors.brandPrimary,
   },
@@ -1169,5 +1284,20 @@ const styles = StyleSheet.create({
     fontSize: type.xs,
     fontWeight: "700",
     color: colors.onBrandPrimary,
+  },
+  logoutHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#DC2626",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    ...shadows.sm,
+  },
+  logoutHeaderText: {
+    fontSize: type.xs - 1,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });

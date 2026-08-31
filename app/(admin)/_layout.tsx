@@ -1,7 +1,8 @@
 import React from "react";
+import { Platform } from "react-native";
 import { Tabs } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, type } from "../../src/theme";
+import { MaterialCommunityIcons, Ionicons, Feather } from "@expo/vector-icons";
+import { colors } from "../../src/theme";
 import { useI18n } from "../../src/i18n";
 
 export default function AdminTabsLayout() {
@@ -14,42 +15,54 @@ export default function AdminTabsLayout() {
         tabBarActiveTintColor: colors.brandPrimary,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: colors.cardBg,
+          backgroundColor: "#FFFFFF",
           borderTopColor: colors.divider,
-          height: 64,
-          paddingBottom: 10,
+          borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 88 : 68,
+          paddingBottom: Platform.OS === "ios" ? 28 : 10,
           paddingTop: 8,
+          elevation: 8,
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+        },
+        tabBarItemStyle: {
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 2,
         },
         tabBarLabelStyle: {
-          fontSize: type.xs - 1,
+          fontSize: 10,
           fontWeight: "700",
+          marginTop: 2,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Analytics",
+          title: "Stats",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chart-box-outline" size={size + 2} color={color} />
+            <Ionicons name="bar-chart-outline" size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
-          title: "Pipeline",
+          title: "Orders",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="view-dashboard-outline" size={size + 2} color={color} />
+            <Ionicons name="clipboard-outline" size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="inventory"
         options={{
-          title: "Stock & Price",
+          title: "Stock",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="silo" size={size + 2} color={color} />
+            <Ionicons name="cube-outline" size={22} color={color} />
           ),
         }}
       />
@@ -58,7 +71,25 @@ export default function AdminTabsLayout() {
         options={{
           title: "Buyers",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group-outline" size={size + 2} color={color} />
+            <Ionicons name="people-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Store",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="management"
+        options={{
+          title: "System",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="shield-checkmark-outline" size={22} color={color} />
           ),
         }}
       />

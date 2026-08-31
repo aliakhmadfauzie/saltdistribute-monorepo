@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { useI18n, Language } from "../i18n";
-import { colors, radius, spacing, type, touchTarget } from "../theme";
+import { useI18n } from "../i18n";
+import { radius, type } from "../theme";
 
 export default function LangToggle() {
   const { language, setLanguage } = useI18n();
@@ -10,32 +10,19 @@ export default function LangToggle() {
     <View style={styles.container}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Pilih Bahasa Indonesia"
-        accessibilityState={{ selected: language === "id" }}
-        style={({ pressed }) => [
-          styles.btn,
-          language === "id" && styles.activeBtn,
-          pressed && { opacity: 0.8 },
-        ]}
-        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        accessibilityLabel="Bahasa Indonesia"
+        style={[styles.segment, language === "id" && styles.segmentActive]}
         onPress={() => setLanguage("id")}
       >
-        <Text style={[styles.text, language === "id" && styles.activeText]}>🇮🇩 ID</Text>
+        <Text style={[styles.label, language === "id" && styles.labelActive]}>ID</Text>
       </Pressable>
-
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Select English Language"
-        accessibilityState={{ selected: language === "en" }}
-        style={({ pressed }) => [
-          styles.btn,
-          language === "en" && styles.activeBtn,
-          pressed && { opacity: 0.8 },
-        ]}
-        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        accessibilityLabel="English"
+        style={[styles.segment, language === "en" && styles.segmentActive]}
         onPress={() => setLanguage("en")}
       >
-        <Text style={[styles.text, language === "en" && styles.activeText]}>🇬🇧 EN</Text>
+        <Text style={[styles.label, language === "en" && styles.labelActive]}>EN</Text>
       </Pressable>
     </View>
   );
@@ -45,36 +32,27 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
     borderRadius: radius.pill,
-    padding: 3,
-    minHeight: 38,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
-  btn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+  segment: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: radius.pill,
-    minHeight: 32,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  activeBtn: {
-    backgroundColor: colors.cardBg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
+  segmentActive: {
+    backgroundColor: "#FFFFFF",
   },
-  text: {
-    fontSize: type.xs,
+  label: {
+    fontSize: type.xs - 1,
     fontWeight: "700",
-    color: colors.onBrandPrimary,
-    opacity: 0.85,
+    color: "rgba(255, 255, 255, 0.8)",
   },
-  activeText: {
-    color: colors.brandPrimary,
-    opacity: 1,
+  labelActive: {
+    color: "#064E3B",
     fontWeight: "800",
   },
 });

@@ -1,5 +1,12 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "hosting": {
+    "site": "saltdistribute",
     "public": "dist",
     "ignore": [
       "firebase.json",

@@ -8,34 +8,24 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import { formatIDR } from "../api";
 import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
 import { Booking } from "../types";
+import { pickDocumentFile, formatFileSize, PickedFileResult } from "../services/filePickerService";
+import { getAvailableBankAccounts, getPrimaryBankAccount, getSampleReceipts, BankAccountConfig } from "../services/configService";
 
 interface ProofUploadModalProps {
   visible: boolean;
   booking: Booking | null;
   onClose: () => void;
-  onUploadSuccess: (bookingId: string, proofUrl: string) => Promise<void>;
+  onUploadSuccess: (bookingId: string, proofUrl: string, proofName?: string) => Promise<string | void>;
 }
 
-const SAMPLE_RECEIPTS = [
-  {
-    name: "BCA Mobile Transfer Receipt (Screenshot)",
-    url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=700&auto=format&fit=crop&q=80",
-  },
-  {
-    name: "Mandiri Livin' Transfer Struk",
-    url: "https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=700&auto=format&fit=crop&q=80",
-  },
-  {
-    name: "BNI Direct Official Invoice PDF",
-    url: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=700&auto=format&fit=crop&q=80",
-  },
-];
+const SAMPLE_RECEIPTS = getSampleReceipts();
 
 export default function ProofUploadModal({
   visible,
@@ -44,8 +34,12 @@ export default function ProofUploadModal({
   onUploadSuccess,
 }: ProofUploadModalProps) {
   const { t } = useI18n();
+  const availableBanks = getAvailableBankAccounts();
+  const [selectedBank, setSelectedBank] = useState<BankAccountConfig>(getPrimaryBankAccount());
   const [selectedProof, setSelectedProof] = useState<string>(SAMPLE_RECEIPTS[0].url);
+  const [customFile, setCustomFile] = useState<PickedFileResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isPicking, setIsPicking] = useState(false);
   const [copiedBank, setCopiedBank] = useState(false);
 
   if (!booking) return null;
@@ -55,10 +49,26 @@ export default function ProofUploadModal({
     setTimeout(() => setCopiedBank(false), 2000);
   };
 
+  const handleBrowseDocument = async () => {
+    setIsPicking(true);
+    try {
+      const file = await pickDocumentFile("image/*,application/pdf,.doc,.docx");
+      if (file) {
+        setCustomFile(file);
+        setSelectedProof(file.uri);
+      }
+    } catch (err: any) {
+      Alert.alert("File Error", err?.message || "Failed to read document.");
+    } finally {
+      setIsPicking(false);
+    }
+  };
+
   const handleUpload = async () => {
     setIsUploading(true);
     try {
-      await onUploadSuccess(booking.bookingId, selectedProof);
+      const fileName = customFile?.name || "Bukti_Transfer_Bank.png";
+      await onUploadSuccess(booking.bookingId, selectedProof, fileName);
       onClose();
     } catch (e) {
       console.warn("Upload failed", e);
@@ -66,6 +76,8 @@ export default function ProofUploadModal({
       setIsUploading(false);
     }
   };
+
+  const isPdf = customFile?.type === "pdf" || selectedProof.includes("pdf");
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -77,7 +89,7 @@ export default function ProofUploadModal({
           </View>
 
           <View style={styles.header}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.title}>{t("uploadProofTitle")}</Text>
               <Text style={styles.subtitle}>Order #{booking.bookingId}</Text>
             </View>
@@ -92,21 +104,21 @@ export default function ProofUploadModal({
             </Pressable>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+          <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
             {/* Bank Transfer Details Card with 1-Tap Copy */}
             <View style={styles.bankCard}>
               <View style={styles.bankHeader}>
-                <MaterialCommunityIcons name="bank" size={22} color={colors.onBrandTertiary} />
-                <Text style={styles.bankTitle}>Bank Central Asia (BCA)</Text>
+                <MaterialCommunityIcons name={(selectedBank.iconName as any) || "bank"} size={22} color={colors.onBrandTertiary} />
+                <Text style={styles.bankTitle}>{selectedBank.bankName}</Text>
               </View>
 
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Salin Nomor Rekening BCA"
+                accessibilityLabel={`Salin Nomor Rekening ${selectedBank.bankCode}`}
                 style={styles.accountRow}
                 onPress={handleCopyAccount}
               >
-                <Text style={styles.accountNumber}>123 - 456 - 7890</Text>
+                <Text style={styles.accountNumber}>{selectedBank.accountNumber}</Text>
                 <View style={styles.copyPill}>
                   <MaterialCommunityIcons
                     name={copiedBank ? "check" : "content-copy"}
@@ -117,7 +129,7 @@ export default function ProofUploadModal({
                 </View>
               </Pressable>
 
-              <Text style={styles.accountName}>a/n PT SaltDistribute Indonesia</Text>
+              <Text style={styles.accountName}>a/n {selectedBank.accountHolder}</Text>
 
               <View style={styles.amountBox}>
                 <Text style={styles.amountLabel}>Transfer Exact Amount:</Text>
@@ -125,17 +137,83 @@ export default function ProofUploadModal({
               </View>
             </View>
 
-            <Text style={styles.sectionHeader}>{t("selectFile")}</Text>
+            {/* MAIN ATTACH DOCUMENT / FILE ACTION BUTTON */}
+            <View style={styles.uploadSection}>
+              <Text style={styles.sectionHeader}>📎 Attach Document / Receipt</Text>
+              <Text style={styles.uploadSubtext}>
+                Upload payment slip, bank screenshot, or official invoice (PDF, PNG, JPG).
+              </Text>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Attach document or browse files"
+                style={({ pressed }) => [
+                  styles.attachButton,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={handleBrowseDocument}
+                disabled={isPicking}
+              >
+                <View style={styles.attachIconCircle}>
+                  <MaterialCommunityIcons name="file-upload-outline" size={26} color={colors.brandPrimary} />
+                </View>
+                <View style={styles.attachTextCol}>
+                  <Text style={styles.attachTitle}>
+                    {isPicking ? "Opening File Browser..." : "Browse / Choose Document File"}
+                  </Text>
+                  <Text style={styles.attachSubtitle}>Tap to select from device storage, gallery, or files</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={22} color={colors.brandPrimary} />
+              </Pressable>
+
+              {/* Custom Attached File Details Card */}
+              {customFile && (
+                <View style={styles.attachedCard}>
+                  <View style={styles.attachedFileIconBox}>
+                    <MaterialCommunityIcons
+                      name={customFile.type === "pdf" ? "file-pdf-box" : "file-image"}
+                      size={28}
+                      color={customFile.type === "pdf" ? "#DC2626" : colors.brandPrimary}
+                    />
+                  </View>
+                  <View style={styles.attachedFileDetails}>
+                    <Text style={styles.attachedFileName} numberOfLines={1}>
+                      {customFile.name}
+                    </Text>
+                    <Text style={styles.attachedFileSize}>
+                      {formatFileSize(customFile.sizeBytes)} &bull; {customFile.type.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove attached file"
+                    onPress={() => {
+                      setCustomFile(null);
+                      setSelectedProof(SAMPLE_RECEIPTS[0].url);
+                    }}
+                    style={styles.removeFileBtn}
+                  >
+                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
+            {/* Alternative Quick Presets */}
+            <Text style={styles.sectionHeader}>Or Choose Quick Demo Receipt</Text>
             <View style={styles.receiptOptions}>
               {SAMPLE_RECEIPTS.map((item, idx) => {
-                const isChosen = selectedProof === item.url;
+                const isChosen = selectedProof === item.url && !customFile;
                 return (
                   <Pressable
                     key={idx}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isChosen }}
                     style={[styles.receiptOption, isChosen && styles.receiptOptionChosen]}
-                    onPress={() => setSelectedProof(item.url)}
+                    onPress={() => {
+                      setCustomFile(null);
+                      setSelectedProof(item.url);
+                    }}
                   >
                     <MaterialCommunityIcons
                       name={isChosen ? "radiobox-marked" : "radiobox-blank"}
@@ -150,10 +228,20 @@ export default function ProofUploadModal({
               })}
             </View>
 
-            {/* Preview Section */}
-            <Text style={styles.sectionHeader}>Receipt Preview</Text>
+            {/* Document / Receipt Live Preview */}
+            <Text style={styles.sectionHeader}>Document Preview</Text>
             <View style={styles.previewContainer}>
-              <Image source={{ uri: selectedProof }} style={styles.previewImage} resizeMode="cover" />
+              {isPdf ? (
+                <View style={styles.pdfPreviewBox}>
+                  <MaterialCommunityIcons name="file-pdf-box" size={48} color="#DC2626" />
+                  <Text style={styles.pdfPreviewTitle}>
+                    {customFile?.name || "Official_Invoice_Document.pdf"}
+                  </Text>
+                  <Text style={styles.pdfPreviewSubtitle}>PDF Document Ready for Verification</Text>
+                </View>
+              ) : (
+                <Image source={{ uri: selectedProof }} style={styles.previewImage} resizeMode="cover" />
+              )}
             </View>
           </ScrollView>
 
@@ -170,7 +258,7 @@ export default function ProofUploadModal({
                 <ActivityIndicator color={colors.onBrandPrimary} />
               ) : (
                 <View style={styles.submitBtnRow}>
-                  <MaterialCommunityIcons name="check-bold" size={20} color={colors.onBrandPrimary} />
+                  <MaterialCommunityIcons name="cloud-upload" size={20} color={colors.onBrandPrimary} />
                   <Text style={styles.submitText}>{t("submitProof")}</Text>
                 </View>
               )}
@@ -192,7 +280,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    maxHeight: "90%",
+    maxHeight: "92%",
     width: "100%",
     maxWidth: 640,
     alignSelf: "center",
@@ -201,24 +289,22 @@ const styles = StyleSheet.create({
   },
   dragHandleContainer: {
     alignItems: "center",
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
+    paddingVertical: spacing.sm,
   },
   dragHandle: {
-    width: 36,
+    width: 40,
     height: 4,
     borderRadius: radius.pill,
     backgroundColor: colors.borderStrong,
-    opacity: 0.5,
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.xl,
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
+    borderBottomColor: colors.border,
   },
   title: {
     fontSize: type.lg,
@@ -226,29 +312,32 @@ const styles = StyleSheet.create({
     color: colors.onSurface,
   },
   subtitle: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     color: colors.onSurfaceSecondary,
+    fontWeight: "600",
+    marginTop: 2,
   },
   closeBtn: {
-    minWidth: touchTarget.minWidth,
+    padding: spacing.xs,
     minHeight: touchTarget.minHeight,
+    minWidth: touchTarget.minWidth,
     alignItems: "center",
     justifyContent: "center",
   },
   body: {
-    paddingHorizontal: spacing.xl,
+    flex: 1,
   },
   bodyContent: {
-    paddingVertical: spacing.md,
+    padding: spacing.lg,
     gap: spacing.md,
   },
   bankCard: {
     backgroundColor: colors.brandTertiary,
     borderRadius: radius.md,
-    padding: spacing.lg,
-    gap: spacing.xs + 2,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: "rgba(6, 78, 59, 0.15)",
+    borderColor: colors.brandPrimaryContainer,
+    gap: spacing.xs + 2,
   },
   bankHeader: {
     flexDirection: "row",
@@ -257,27 +346,33 @@ const styles = StyleSheet.create({
   },
   bankTitle: {
     fontSize: type.sm,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.onBrandTertiary,
   },
   accountRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: spacing.xs,
+    backgroundColor: colors.cardBg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   accountNumber: {
-    fontSize: type.xxl,
+    fontSize: type.lg,
     fontWeight: "800",
-    color: colors.onBrandTertiary,
-    letterSpacing: 1.2,
+    color: colors.onSurface,
+    letterSpacing: 1,
   },
   copyPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(6, 78, 59, 0.15)",
-    paddingHorizontal: spacing.sm + 2,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.pill,
   },
@@ -287,93 +382,186 @@ const styles = StyleSheet.create({
     color: colors.onBrandTertiary,
   },
   accountName: {
-    fontSize: type.sm,
-    color: colors.onBrandTertiary,
-    opacity: 0.9,
-  },
-  amountBox: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(6, 78, 59, 0.2)",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  amountLabel: {
-    fontSize: type.xs + 1,
+    fontSize: type.xs,
     color: colors.onBrandTertiary,
     fontWeight: "600",
   },
-  amountValue: {
-    fontSize: type.lg,
-    fontWeight: "800",
+  amountBox: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(6, 78, 59, 0.15)",
+  },
+  amountLabel: {
+    fontSize: type.xs,
+    fontWeight: "700",
     color: colors.onBrandTertiary,
+  },
+  amountValue: {
+    fontSize: type.base,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+  },
+  uploadSection: {
+    gap: spacing.xs + 2,
   },
   sectionHeader: {
     fontSize: type.sm,
     fontWeight: "800",
     color: colors.onSurface,
-    marginTop: spacing.xs,
+  },
+  uploadSubtext: {
+    fontSize: type.xs - 1,
+    color: colors.onSurfaceSecondary,
+  },
+  attachButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surfaceContainerLowest,
+    borderWidth: 1.5,
+    borderColor: colors.brandPrimary,
+    borderStyle: "dashed",
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginTop: 4,
+  },
+  attachIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  attachTitle: {
+    fontSize: type.sm,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+  },
+  attachSubtitle: {
+    fontSize: type.xs - 2,
+    color: colors.onSurfaceSecondary,
+  },
+  attachedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: radius.sm,
+    padding: spacing.sm + 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
+    marginTop: 4,
+  },
+  attachedFileIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.xs,
+    backgroundColor: colors.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachedFileDetails: {
+    flex: 1,
+    gap: 2,
+  },
+  attachedFileName: {
+    fontSize: type.xs,
+    fontWeight: "700",
+    color: colors.onSurface,
+  },
+  attachedFileSize: {
+    fontSize: type.xs - 2,
+    color: colors.muted,
+  },
+  removeFileBtn: {
+    padding: spacing.xs,
   },
   receiptOptions: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   receiptOption: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
-    backgroundColor: colors.cardBg,
+    gap: spacing.sm,
     padding: spacing.md,
-    minHeight: touchTarget.minHeight,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   receiptOptionChosen: {
+    backgroundColor: colors.brandTertiary,
     borderColor: colors.brandPrimary,
-    backgroundColor: "#F0FDF4",
+    borderWidth: 1.5,
   },
   receiptName: {
-    fontSize: type.sm,
+    fontSize: type.xs,
     color: colors.onSurface,
     fontWeight: "600",
     flex: 1,
   },
   receiptNameChosen: {
-    color: colors.brandPrimary,
-    fontWeight: "700",
+    fontWeight: "800",
+    color: colors.onBrandTertiary,
   },
   previewContainer: {
     borderRadius: radius.md,
     overflow: "hidden",
-    height: 190,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 140,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: "center",
+    justifyContent: "center",
   },
   previewImage: {
     width: "100%",
-    height: "100%",
+    height: 180,
+  },
+  pdfPreviewBox: {
+    padding: spacing.lg,
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  pdfPreviewTitle: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onSurface,
+    textAlign: "center",
+  },
+  pdfPreviewSubtitle: {
+    fontSize: type.xs - 2,
+    color: colors.muted,
   },
   footer: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
   },
   submitBtn: {
     backgroundColor: colors.brandPrimary,
-    minHeight: touchTarget.minHeight,
+    paddingVertical: spacing.md,
     borderRadius: radius.pill,
+    minHeight: touchTarget.minHeight,
     alignItems: "center",
     justifyContent: "center",
     ...shadows.md,
+  },
+  disabledBtn: {
+    opacity: 0.6,
   },
   submitBtnRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs + 2,
-  },
-  disabledBtn: {
-    opacity: 0.6,
   },
   submitText: {
     color: colors.onBrandPrimary,

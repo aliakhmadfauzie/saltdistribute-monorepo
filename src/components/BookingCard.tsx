@@ -142,11 +142,19 @@ export default function BookingCard({
           </Text>
         </Pressable>
 
-        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-          <MaterialCommunityIcons name={statusStyle.icon} size={14} color={statusStyle.text} />
-          <Text style={[styles.statusText, { color: statusStyle.text }]} numberOfLines={1}>
-            {t(`status_${booking.status}` as any) || booking.status}
-          </Text>
+        <View style={styles.badgeGroup}>
+          {booking.isGuest ? (
+            <View style={styles.guestBadgeTag}>
+              <MaterialCommunityIcons name="lightning-bolt" size={12} color="#D97706" />
+              <Text style={styles.guestBadgeText}>{t("guestBadge")}</Text>
+            </View>
+          ) : null}
+          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+            <MaterialCommunityIcons name={statusStyle.icon} size={14} color={statusStyle.text} />
+            <Text style={[styles.statusText, { color: statusStyle.text }]} numberOfLines={1}>
+              {t(`status_${booking.status}` as any) || booking.status}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -189,10 +197,10 @@ export default function BookingCard({
           />
           <Text style={styles.mapRouteBtnText}>
             {booking.deliveryType === "COD"
-              ? `View COD Meeting Point (${booking.meetingPointName || "Belawan Hub Area"})`
+              ? `${t("viewCodMeetingPoint")} (${booking.meetingPointName || "Belawan Hub"})`
               : isAdmin
-              ? "View Dispatch Route & ETA"
-              : "Track Estimated Delivery Route"}
+              ? t("viewDispatchRoute")
+              : t("trackDeliveryRoute")}
           </Text>
           <MaterialCommunityIcons name="chevron-right" size={16} color={colors.brandPrimary} />
         </Pressable>
@@ -201,7 +209,7 @@ export default function BookingCard({
         {isAdmin && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open Seller-Exclusive Live Buyer Radar"
+            accessibilityLabel={t("liveBuyerRadar")}
             style={({ pressed }) => [styles.liveRadarBtn, pressed && { opacity: 0.9 }]}
             onPress={() => setIsRadarModalVisible(true)}
           >
@@ -210,8 +218,8 @@ export default function BookingCard({
               <MaterialCommunityIcons name="radar" size={16} color={colors.onBrandPrimary} />
               <Text style={styles.liveRadarBtnText}>
                 {booking.liveLocation?.isSharing
-                  ? `Live Buyer GPS Active (±${booking.liveLocation.accuracyMeters}m)`
-                  : "Live Buyer Radar & Spatial GPS"}
+                  ? `${t("liveBuyerGpsActive")} (±${booking.liveLocation.accuracyMeters}m)`
+                  : t("liveBuyerRadar")}
               </Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={16} color={colors.onBrandPrimary} />
@@ -226,9 +234,9 @@ export default function BookingCard({
             <MaterialCommunityIcons name="account-tie" size={16} color={colors.onSurface} />
             <Text style={styles.buyerTitle}>{booking.buyerName}</Text>
           </View>
-          <Text style={styles.buyerPhone}>Phone: {booking.buyerPhone}</Text>
+          <Text style={styles.buyerPhone}>{t("phoneLabel")}: {booking.buyerPhone}</Text>
           {booking.deliveryAddress ? (
-            <Text style={styles.buyerAddress}>Dest: {booking.deliveryAddress}</Text>
+            <Text style={styles.buyerAddress}>{t("destLabel")}: {booking.deliveryAddress}</Text>
           ) : null}
         </View>
       ) : null}
@@ -306,56 +314,84 @@ export default function BookingCard({
         <Text style={styles.totalAmount}>{formatIDR(booking.grandTotal)}</Text>
       </View>
 
+      {/* Attached Supporting Document / PO Preview */}
+      {booking.attachedDocumentUrl ? (
+        <View style={styles.proofPreviewBox}>
+          <View style={styles.proofHeader}>
+            <MaterialCommunityIcons name="file-document-check" size={18} color={colors.brandPrimary} />
+            <Text style={styles.proofLabel}>
+              {booking.attachedDocumentName || t("attachedDocLabel")}
+            </Text>
+          </View>
+          {booking.attachedDocumentUrl.startsWith("data:image") || booking.attachedDocumentUrl.startsWith("http") ? (
+            <Image source={{ uri: booking.attachedDocumentUrl }} style={styles.proofThumb} resizeMode="cover" />
+          ) : (
+            <View style={styles.docFilePill}>
+              <MaterialCommunityIcons name="file-pdf-box" size={24} color="#DC2626" />
+              <Text style={styles.docFilePillText}>{booking.attachedDocumentName || "Document.pdf"}</Text>
+            </View>
+          )}
+        </View>
+      ) : null}
+
       {/* Uploaded Receipt Preview thumbnail */}
       {booking.paymentProofUrl ? (
         <View style={styles.proofPreviewBox}>
           <View style={styles.proofHeader}>
             <MaterialCommunityIcons name="file-check" size={18} color={colors.brandPrimary} />
-            <Text style={styles.proofLabel}>Transfer Proof Attached</Text>
+            <Text style={styles.proofLabel}>
+              {booking.paymentProofName || t("paymentProofAttached")}
+            </Text>
           </View>
           <Image source={{ uri: booking.paymentProofUrl }} style={styles.proofThumb} resizeMode="cover" />
         </View>
       ) : null}
 
-      {/* Action Buttons with 48dp target */}
-      <View style={styles.actions}>
-        {/* Discussion / Chat Button */}
-        {onOpenChat ? (
+      {/* Action Buttons with 48dp touch target and responsive flex rows */}
+      <View style={styles.actionsContainer}>
+        {/* Row 1: Quick Chat & WhatsApp Communications */}
+        <View style={styles.commActionsRow}>
+          {onOpenChat ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open order discussion"
+              style={({ pressed }) => [styles.actionBtn, styles.chatBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => onOpenChat(booking)}
+            >
+              <MaterialCommunityIcons name="chat-processing-outline" size={18} color={colors.onBrandTertiary} />
+              <Text style={styles.chatBtnText}>Chat</Text>
+            </Pressable>
+          ) : null}
+
+          {/* WhatsApp Deep Link Button */}
+          <WhatsAppButton
+            phone={isAdmin ? booking.buyerPhone : "+628123456789"}
+            message={`Halo, terkait Order #${booking.bookingId} (${booking.packageLabel}).`}
+            label="WhatsApp"
+            variant="outline"
+            style={styles.whatsAppBtnFlex}
+          />
+        </View>
+
+        {/* Row 2: Workflow Lifecycle Actions */}
+        {/* Buyer Actions: Upload Proof / Attach Document */}
+        {!isAdmin && (booking.status === "AWAITING_PAYMENT" || booking.status === "PENDING_CONFIRMATION" || booking.status === "PAYMENT_VERIFICATION") && onOpenUpload ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open order discussion"
-            style={({ pressed }) => [styles.actionBtn, styles.chatBtn, pressed && { opacity: 0.85 }]}
-            onPress={() => onOpenChat(booking)}
-          >
-            <MaterialCommunityIcons name="chat-processing-outline" size={18} color={colors.onBrandTertiary} />
-            <Text style={styles.chatBtnText}>Chat</Text>
-          </Pressable>
-        ) : null}
-
-        {/* WhatsApp Deep Link Button */}
-        <WhatsAppButton
-          phone={isAdmin ? booking.buyerPhone : "+628123456789"}
-          message={`Halo, terkait Order #${booking.bookingId} (${booking.packageLabel}).`}
-          label="WhatsApp"
-          variant="outline"
-        />
-
-        {/* Buyer Actions: Upload Proof */}
-        {!isAdmin && booking.status === "AWAITING_PAYMENT" && onOpenUpload ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("uploadProof")}
-            style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, pressed && { opacity: 0.9 }]}
+            accessibilityLabel={booking.paymentProofUrl ? "Re-upload / Update Document" : t("uploadProof")}
+            style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, styles.fullWidthBtn, pressed && { opacity: 0.9 }]}
             onPress={() => onOpenUpload(booking)}
           >
-            <MaterialCommunityIcons name="cloud-upload" size={18} color={colors.onBrandPrimary} />
-            <Text style={styles.primaryBtnText}>{t("uploadProof")}</Text>
+            <MaterialCommunityIcons name="paperclip" size={18} color={colors.onBrandPrimary} />
+            <Text style={styles.primaryBtnText}>
+              {booking.paymentProofUrl ? "Update File" : "Attach Document"}
+            </Text>
           </Pressable>
         ) : null}
 
-        {/* Admin Actions */}
+        {/* Admin Actions: Pending Confirmation */}
         {isAdmin && booking.status === "PENDING_CONFIRMATION" ? (
-          <View style={styles.adminActionRow}>
+          <View style={styles.adminDecisionRow}>
             {onReject ? (
               <Pressable
                 accessibilityRole="button"
@@ -363,6 +399,7 @@ export default function BookingCard({
                 style={({ pressed }) => [styles.actionBtn, styles.dangerBtn, pressed && { opacity: 0.9 }]}
                 onPress={() => onReject(booking.bookingId)}
               >
+                <MaterialCommunityIcons name="close-circle-outline" size={17} color={colors.onErrorContainer} />
                 <Text style={styles.dangerBtnText}>{t("rejectOrder")}</Text>
               </Pressable>
             ) : null}
@@ -373,17 +410,19 @@ export default function BookingCard({
                 style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, pressed && { opacity: 0.9 }]}
                 onPress={() => onAccept(booking.bookingId)}
               >
+                <MaterialCommunityIcons name="check-circle-outline" size={17} color={colors.onBrandPrimary} />
                 <Text style={styles.primaryBtnText}>{t("acceptOrder")}</Text>
               </Pressable>
             ) : null}
           </View>
         ) : null}
 
+        {/* Admin Actions: Payment Verification */}
         {isAdmin && booking.status === "PAYMENT_VERIFICATION" && onVerifyPayment ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("verifyPaymentBtn")}
-            style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, pressed && { opacity: 0.9 }]}
+            style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, styles.fullWidthBtn, pressed && { opacity: 0.9 }]}
             onPress={() => onVerifyPayment(booking.bookingId)}
           >
             <MaterialCommunityIcons name="check-decagram" size={18} color={colors.onBrandPrimary} />
@@ -391,11 +430,12 @@ export default function BookingCard({
           </Pressable>
         ) : null}
 
+        {/* Admin Actions: Mark Delivered */}
         {isAdmin && booking.status === "CONFIRMED_DELIVERING" && onMarkCompleted ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("markCompletedBtn")}
-            style={({ pressed }) => [styles.actionBtn, styles.successBtn, pressed && { opacity: 0.9 }]}
+            style={({ pressed }) => [styles.actionBtn, styles.successBtn, styles.fullWidthBtn, pressed && { opacity: 0.9 }]}
             onPress={() => onMarkCompleted(booking.bookingId)}
           >
             <MaterialCommunityIcons name="truck-check" size={18} color={colors.onSuccess} />
@@ -501,6 +541,29 @@ const styles = StyleSheet.create({
     fontSize: type.xs,
     color: colors.muted,
   },
+  badgeGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "60%",
+    justifyContent: "flex-end",
+  },
+  guestBadgeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  guestBadgeText: {
+    fontSize: type.xs - 2,
+    fontWeight: "900",
+    color: "#B45309",
+  },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -508,7 +571,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    maxWidth: "55%",
   },
   statusText: {
     fontSize: type.xs - 1,
@@ -665,24 +727,39 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     width: "100%",
   },
-  actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+  actionsContainer: {
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
+  commActionsRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+  },
+  adminDecisionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+  },
+  whatsAppBtnFlex: {
+    flex: 1,
+  },
+  fullWidthBtn: {
+    width: "100%",
+  },
   actionBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     minHeight: touchTarget.minHeight,
     borderRadius: radius.pill,
   },
   chatBtn: {
     backgroundColor: colors.brandTertiary,
+    flex: 1,
   },
   chatBtnText: {
     fontSize: type.xs + 1,
@@ -691,8 +768,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: colors.brandPrimary,
-    flex: 1,
-    minWidth: 120,
+    flex: 1.3,
     ...shadows.sm,
   },
   primaryBtnText: {
@@ -700,14 +776,9 @@ const styles = StyleSheet.create({
     fontSize: type.sm,
     fontWeight: "800",
   },
-  adminActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    flex: 1,
-  },
   dangerBtn: {
     backgroundColor: colors.errorContainer,
-    paddingHorizontal: spacing.lg,
+    flex: 1,
   },
   dangerBtnText: {
     color: colors.onErrorContainer,
@@ -717,12 +788,26 @@ const styles = StyleSheet.create({
   successBtn: {
     backgroundColor: colors.success,
     flex: 1,
-    minWidth: 140,
     ...shadows.sm,
   },
   successBtnText: {
     color: colors.onSuccess,
     fontSize: type.sm,
     fontWeight: "800",
+  },
+  docFilePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceContainer,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  docFilePillText: {
+    fontSize: type.xs,
+    fontWeight: "700",
+    color: colors.onSurface,
   },
 });

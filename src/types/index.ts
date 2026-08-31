@@ -4,6 +4,7 @@ export type UserStatus = "active" | "suspended";
 export interface User {
   userId: string;
   username: string;
+  password?: string;
   name: string;
   phoneNumber: string;
   email: string;
@@ -38,16 +39,43 @@ export interface DeliveryOption {
   deliveryZones?: DeliveryZone[];
 }
 
+export interface StoreSettings {
+  storeName: string;
+  sellerName: string;
+  sellerPhone: string;
+  storeBio?: string;
+  operatingHours: string;
+  bannerText: string;
+  warehouseAddress: string;
+  warehouseLatitude: number;
+  warehouseLongitude: number;
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountHolder: string;
+  qrisUrl?: string;
+  paymentInstructions?: string;
+  requirePaymentProof: boolean;
+  orderExpirationHours: number;
+  maxPurchaseGram: number;
+  lowStockThresholdGram: number;
+  productDescription?: string;
+  productGrade?: string;
+}
+
 export interface Inventory {
   inventoryId: string;
   productName: string;
+  productGrade?: string;
+  productDescription?: string;
   isStockAvailable: boolean;
   availableQuantityGram: number;
-  basePricePerGram: number; // e.g. 2.0 (IDR 2,000 / gram)
+  basePricePerGram: number; // e.g. 800000 (IDR 800,000 / gram)
   unitTiers: UnitTier[];
   deliveryOptions: DeliveryOption[];
   updatedAt: string;
   promoBannerText?: string;
+  lowStockThresholdGram?: number;
+  maxPurchaseGram?: number;
 }
 
 export type BookingStatus =
@@ -78,6 +106,8 @@ export type ProximityState =
   | "STATIONARY"
   | "OFFLINE";
 
+export type PurchaseMode = "PER_GRAM" | "PER_AMOUNT";
+
 export interface Booking {
   bookingId: string;
   buyerId: string;
@@ -103,9 +133,36 @@ export interface Booking {
   status: BookingStatus;
   rejectionReason?: string;
   paymentProofUrl?: string;
+  paymentProofName?: string;
   paymentUploadedAt?: string;
+  attachedDocumentUrl?: string;
+  attachedDocumentName?: string;
   createdAt: string;
   updatedAt: string;
+  // Guest & Ephemeral Lifecycle Properties
+  isGuest?: boolean;
+  isTemporary?: boolean;
+  purchaseMode?: PurchaseMode;
+  targetAmountIdr?: number;
+  guestAccessKey?: string;
+  dataPurgeStatus?: "ACTIVE" | "PURGED";
+  purgedAt?: string;
+}
+
+export interface StreamlinedGuestOrderInput {
+  buyerName: string;
+  purchaseMode: PurchaseMode;
+  quantityGram: number;
+  targetAmountIdr: number;
+  deliveryType: "COD" | "DELIVERY";
+  location: string;
+  deliveryFee?: number;
+  latitude?: number;
+  longitude?: number;
+  meetingPointId?: string;
+  meetingPointName?: string;
+  attachedDocumentUrl?: string;
+  attachedDocumentName?: string;
 }
 
 export interface MeetingPoint {
@@ -138,4 +195,7 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   isRead: boolean;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: "image" | "document" | "pdf";
 }

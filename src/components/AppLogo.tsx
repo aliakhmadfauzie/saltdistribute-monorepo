@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, type, shadows } from "../theme";
 
@@ -7,16 +7,20 @@ export interface AppLogoProps {
   variant?: "full" | "compact" | "icon-only" | "badge";
   size?: "sm" | "md" | "lg" | "xl";
   theme?: "emerald" | "light" | "dark";
+  useImage?: boolean;
 }
+
+const logoSource = require("../../assets/images/logo.png");
 
 export default function AppLogo({
   variant = "compact",
   size = "md",
   theme = "emerald",
+  useImage = true,
 }: AppLogoProps) {
   // Dimensions based on size prop
   const iconBoxSize =
-    size === "sm" ? 30 : size === "md" ? 38 : size === "lg" ? 48 : 64;
+    size === "sm" ? 32 : size === "md" ? 40 : size === "lg" ? 52 : 72;
   const iconSize =
     size === "sm" ? 18 : size === "md" ? 22 : size === "lg" ? 28 : 38;
   const titleSize =
@@ -52,50 +56,21 @@ export default function AppLogo({
     ? "#FFFFFF"
     : colors.brandPrimary;
 
-  if (variant === "icon-only") {
-    return (
-      <View
-        style={[
-          styles.emblemWrapper,
-          {
+  const renderIcon = () => {
+    if (useImage) {
+      return (
+        <Image
+          source={logoSource}
+          style={{
             width: iconBoxSize,
             height: iconBoxSize,
-            borderRadius: radius.sm,
-            backgroundColor: emblemBg,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons name="shaker-outline" size={iconSize} color={emblemIconColor} />
-      </View>
-    );
-  }
-
-  if (variant === "badge") {
+            borderRadius: size === "sm" ? radius.xs : radius.sm,
+          }}
+          resizeMode="contain"
+        />
+      );
+    }
     return (
-      <View style={styles.badgeRow}>
-        <View
-          style={[
-            styles.emblemWrapper,
-            {
-              width: 26,
-              height: 26,
-              borderRadius: radius.xs,
-              backgroundColor: colors.brandPrimary,
-            },
-          ]}
-        >
-          <MaterialCommunityIcons name="shaker" size={15} color="#FFFFFF" />
-        </View>
-        <Text style={[styles.badgeText, { color: brandColor }]}>
-          <Text style={{ fontWeight: "900", color: brandColor }}>SALT</Text>
-          <Text style={{ fontWeight: "400", opacity: 0.9 }}>DISTRIBUTE</Text>
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.container, variant === "full" && styles.containerVertical]}>
       <View
         style={[
           styles.emblemWrapper,
@@ -111,6 +86,35 @@ export default function AppLogo({
       >
         <MaterialCommunityIcons name="shaker-outline" size={iconSize} color={emblemIconColor} />
       </View>
+    );
+  };
+
+  if (variant === "icon-only") {
+    return renderIcon();
+  }
+
+  if (variant === "badge") {
+    return (
+      <View style={styles.badgeRow}>
+        <Image
+          source={logoSource}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: radius.xs,
+          }}
+          resizeMode="contain"
+        />
+        <Text style={[styles.badgeText, { color: brandColor }]}>
+          <Text style={{ fontWeight: "900", color: brandColor, letterSpacing: 1 }}>SD</Text>
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, variant === "full" && styles.containerVertical]}>
+      {renderIcon()}
 
       <View style={[styles.textGroup, variant === "full" && styles.textGroupCentered]}>
         <View style={styles.wordmarkRow}>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,10 +16,16 @@ import { Booking } from "../types";
 import { useAuth, formatIDR } from "../api";
 import { DEFAULT_SELLER_LOCATION, COD_MEETING_POINTS } from "../services/mapsService";
 import {
+  LiveBuyerLocation,
   analyzeProximity,
   getBuyerLiveNavigationUrl,
   getBuyerWazeNavigationUrl,
+  getDeviceCurrentLocation,
+  getCachedSellerLocation,
+  setCachedSellerLocation,
 } from "../services/locationService";
+import { generateLiveRadarMapHtml } from "../services/leafletService";
+import { requestScreenWakeLock, releaseScreenWakeLock } from "../services/wakeLockService";
 
 interface AdminLiveRadarModalProps {
   visible: boolean;
@@ -34,23 +40,41 @@ export default function AdminLiveRadarModal({
 }: AdminLiveRadarModalProps) {
   const { currentUser } = useAuth();
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
+  const [liveSellerLoc, setLiveSellerLoc] = useState<LiveBuyerLocation | null>(getCachedSellerLocation());
+
+  useEffect(() => {
+    if (visible) {
+      requestScreenWakeLock();
+      getDeviceCurrentLocation().then((loc) => {
+        if (loc && loc.latitude && loc.longitude) {
+          setCachedSellerLocation(loc);
+          setLiveSellerLoc(loc);
+        }
+      });
+    } else {
+      releaseScreenWakeLock();
+    }
+    return () => {
+      releaseScreenWakeLock();
+    };
+  }, [visible]);
 
   if (!booking) return null;
 
-  const sellerLat = (currentUser?.role === "admin" ? currentUser.latitude : undefined) || DEFAULT_SELLER_LOCATION.lat;
-  const sellerLng = (currentUser?.role === "admin" ? currentUser.longitude : undefined) || DEFAULT_SELLER_LOCATION.lng;
-  const sellerLabel = "Lokasi Admin / Penjual (Live GPS)";
+  const sellerLat = liveSellerLoc?.latitude || (currentUser?.role === "admin" ? currentUser.latitude : undefined) || DEFAULT_SELLER_LOCATION.lat;
+  const sellerLng = liveSellerLoc?.longitude || (currentUser?.role === "admin" ? currentUser.longitude : undefined) || DEFAULT_SELLER_LOCATION.lng;
+  const sellerLabel = "Lokasi Penjual (Live Device GPS)";
 
   const meetingPoint = booking.meetingPointId
     ? COD_MEETING_POINTS.find((mp) => mp.id === booking.meetingPointId)
     : undefined;
 
   const proximity = analyzeProximity(booking.liveLocation, booking.meetingPointId, { latitude: sellerLat, longitude: sellerLng });
-  const isSharing = booking.liveLocation?.isSharing && booking.liveLocation.latitude;
+  const isSharing = Boolean(booking.liveLocation?.isSharing && booking.liveLocation.latitude);
 
   // Destination fallback if GPS not active
-  const targetLat = booking.liveLocation?.latitude || (meetingPoint ? meetingPoint.lat : 3.5952);
-  const targetLng = booking.liveLocation?.longitude || (meetingPoint ? meetingPoint.lng : 98.6722);
+  const targetLat = booking.liveLocation?.latitude || (meetingPoint ? meetingPoint.lat : sellerLat);
+  const targetLng = booking.liveLocation?.longitude || (meetingPoint ? meetingPoint.lng : sellerLng);
   const accuracyMeters = booking.liveLocation?.accuracyMeters || 15;
 
   const handleOpenGoogleMaps = () => {
@@ -63,153 +87,21 @@ export default function AdminLiveRadarModal({
     Linking.openURL(url).catch((err) => console.warn("Could not open Waze", err));
   };
 
-  // Google Maps Platform Interactive Radar HTML
-  const radarMapHtml = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <style>
-      html, body, #map {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      }
-      .custom-radar-hud {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        background: rgba(0, 30, 20, 0.92);
-        color: #ffffff;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 11px;
-        font-weight: 700;
-        z-index: 10;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        border: 1px solid rgba(0, 108, 76, 0.4);
-      }
-      .pulse-ring {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #00E676;
-        box-shadow: 0 0 0 rgba(0, 230, 118, 0.6);
-        animation: pulse 1.5s infinite;
-      }
-      @keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
-        70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
-      }
-      .badge-hub {
-        background: #006C4C;
-        color: #ffffff;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-weight: bold;
-      }
-      .badge-buyer {
-        background: #0284C7;
-        color: #ffffff;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-weight: bold;
-      }
-    </style>
-    <script src="https://maps.googleapis.com/maps/api/js?key=&callback=initRadarMap&libraries=geometry" async defer></script>
-    <script>
-      let map;
-      function initRadarMap() {
-        const hubPos = { lat: ${sellerLat}, lng: ${sellerLng} };
-        const buyerPos = { lat: ${targetLat}, lng: ${targetLng} };
-
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(hubPos);
-        bounds.extend(buyerPos);
-
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: hubPos,
-          zoom: 12,
-          mapTypeId: "${mapType}",
-          disableDefaultUI: false,
-          zoomControl: true,
-        });
-
-        map.fitBounds(bounds, { top: 60, bottom: 40, left: 40, right: 40 });
-
-        // Seller Device Location Marker
-        const hubMarker = new google.maps.Marker({
-          position: hubPos,
-          map: map,
-          title: "${sellerLabel}",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
-          }
-        });
-
-        const hubInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-hub">SELLER DEVICE</span><br/><b>${sellerLabel}</b><br/>Titik Berangkat Penjual (Live GPS)</div>'
-        });
-        hubMarker.addListener("click", () => hubInfo.open(map, hubMarker));
-
-        // Live Buyer Position Marker
-        const buyerMarker = new google.maps.Marker({
-          position: buyerPos,
-          map: map,
-          title: "Buyer Live Location: ${booking.buyerName}",
-          icon: {
-            url: "${isSharing ? "https://maps.google.com/mapfiles/ms/icons/blue-dot.png" : "https://maps.google.com/mapfiles/ms/icons/red-dot.png"}"
-          }
-        });
-
-        // Accuracy circle
-        new google.maps.Circle({
-          strokeColor: "#0284C7",
-          strokeOpacity: 0.8,
-          strokeWeight: 1.5,
-          fillColor: "#0284C7",
-          fillOpacity: 0.15,
-          map: map,
-          center: buyerPos,
-          radius: ${accuracyMeters},
-        });
-
-        const buyerInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-buyer">LIVE BUYER GPS</span><br/><b>${booking.buyerName}</b><br/>Proximity: ${proximity.statusLabel}</div>'
-        });
-        buyerMarker.addListener("click", () => buyerInfo.open(map, buyerMarker));
-
-        // Route Polyline
-        const radarPath = new google.maps.Polyline({
-          path: [hubPos, buyerPos],
-          geodesic: true,
-          strokeColor: "${isSharing ? "#0284C7" : "#006C4C"}",
-          strokeOpacity: 0.85,
-          strokeWeight: 4,
-        });
-        radarPath.setMap(map);
-      }
-    </script>
-  </head>
-  <body>
-    <div class="custom-radar-hud">
-      <div>
-        <span class="pulse-ring"></span>
-        &nbsp; LIVE BUYER RADAR: ${booking.buyerName}
-      </div>
-      <div>${proximity.distanceFromHubKm} km (~${proximity.estimatedMinutes}m)</div>
-    </div>
-    <div id="map"></div>
-  </body>
-</html>
-  `;
+  // Generate Leaflet & OpenStreetMap Live GNSS Radar HTML
+  const radarMapHtml = generateLiveRadarMapHtml({
+    sellerLat,
+    sellerLng,
+    sellerLabel,
+    targetLat,
+    targetLng,
+    buyerName: booking.buyerName,
+    statusLabel: proximity.statusLabel,
+    accuracyMeters,
+    distanceKm: proximity.distanceFromHubKm,
+    estimatedMinutes: proximity.estimatedMinutes,
+    isSharing,
+    mapType,
+  });
 
   return (
     <Modal

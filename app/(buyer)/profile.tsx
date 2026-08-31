@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useState, useCallback } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, RefreshControl } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
-import { useAuth } from "../../src/api";
+import { useAuth, useApp } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
 import WhatsAppButton from "../../src/components/WhatsAppButton";
@@ -14,15 +14,32 @@ import GoogleLocationPickerModal, { SelectedLocationResult } from "../../src/com
 import CustomerLocationModal from "../../src/components/CustomerLocationModal";
 import AppLogo from "../../src/components/AppLogo";
 import { calculateRouteMetrics } from "../../src/services/mapsService";
+import {
+  requestNotificationPermission,
+  sendTestNotification,
+  getNotificationPermissionStatus,
+} from "../../src/services/notificationService";
 
 export default function BuyerProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { currentUser, allUsers, signOut, switchUser, updateProfile } = useAuth();
+  const { currentUser, allUsers, signOut, switchUser, updateProfile, refreshUsers } = useAuth();
+  const { isRefreshing, refreshAllData } = useApp();
   const { t } = useI18n();
 
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [isViewLocationModalOpen, setIsViewLocationModalOpen] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUsers().catch(() => {});
+      refreshAllData().catch(() => {});
+    }, [])
+  );
+
+  const handleRefresh = async () => {
+    await Promise.all([refreshUsers(), refreshAllData()]);
+  };
 
   const adminUser = allUsers.find((u) => u.role === "admin");
   const buyerLat = currentUser?.latitude || 3.7042;
@@ -65,7 +82,18 @@ export default function BuyerProfileScreen() {
             <AppLogo variant="badge" size="sm" theme="light" />
             <Text style={styles.headerTitle}>Buyer Account</Text>
           </View>
-          <LangToggle />
+          <View style={styles.headerRightActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("logout")}
+              style={({ pressed }) => [styles.logoutHeaderBtn, pressed && { opacity: 0.85 }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.logoutHeaderText}>Logout</Text>
+            </Pressable>
+            <LangToggle />
+          </View>
         </View>
       </LinearGradient>
 
@@ -73,26 +101,39 @@ export default function BuyerProfileScreen() {
         contentContainerStyle={[
           styles.body,
           layout.centeredContainer,
-          { paddingBottom: insets.bottom + 140 },
+          { paddingBottom: insets.bottom + 40 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.brandPrimary]}
+            tintColor={colors.brandPrimary}
+          />
+        }
       >
         {/* User Info Card */}
         <View style={styles.card}>
           <View style={styles.userRow}>
             <View style={styles.avatar}>
-              <MaterialCommunityIcons name="account" size={32} color={colors.onBrandPrimary} />
+              <Ionicons name="person" size={30} color={colors.onBrandPrimary} />
             </View>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>{currentUser?.name}</Text>
               <Text style={styles.userCompany}>{currentUser?.companyName || "Wholesale Buyer"}</Text>
               <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>ROLE: BUYER</Text>
+                <Text style={styles.roleText}>ROLE: BUYER &bull; @{currentUser?.username || "buyer"}</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.divider} />
+
+          <View style={styles.infoField}>
+            <Text style={styles.infoLabel}>Username</Text>
+            <Text style={styles.infoValue}>@{currentUser?.username || "-"}</Text>
+          </View>
 
           <View style={styles.infoField}>
             <Text style={styles.infoLabel}>{t("email")}</Text>
@@ -108,104 +149,145 @@ export default function BuyerProfileScreen() {
         {/* Saved Delivery Destination & Google Maps Card */}
         <View style={styles.card}>
           <View style={styles.sectionHeaderRow}>
-            <MaterialCommunityIcons name="google-maps" size={22} color={colors.brandPrimary} />
-            <Text style={styles.sectionTitle}>{t("customerLocation")}</Text>
+            <Ionicons name="location-outline" size={22} color={colors.brandPrimary} />
+            <Text style={styles.cardTitle}>{t("savedLocationPreview")}</Text>
           </View>
+          <Text style={styles.cardSubtitle}>
+            Your primary GPS destination used to compute delivery fees and nearest dispatch meeting points.
+          </Text>
 
-          <View style={styles.locationPreviewBox}>
-            <View style={styles.locRow}>
-              <MaterialCommunityIcons name="map-marker-radius" size={20} color={colors.error} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.locAddressText}>
-                  {currentUser?.address || "Jl. Industri Belawan / Medan"}
-                </Text>
-                <Text style={styles.locGeoSub}>
-                  GPS: {buyerLat.toFixed(4)}, {buyerLng.toFixed(4)} &bull; {metrics.zoneName}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.locMetricsGrid}>
-              <View style={styles.locMetricItem}>
-                <Text style={styles.locMetricLabel}>{t("distanceFromHub")}</Text>
-                <Text style={styles.locMetricVal}>{metrics.distanceKm} km</Text>
-              </View>
-              <View style={styles.locMetricDivider} />
-              <View style={styles.locMetricItem}>
-                <Text style={styles.locMetricLabel}>{t("estTransitDuration")}</Text>
-                <Text style={styles.locMetricVal}>~{metrics.estimatedMinutes} mins</Text>
-              </View>
+          <View style={styles.locationBox}>
+            <Ionicons name="pin" size={20} color={colors.brandPrimary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.locationText}>{currentUser?.address || "No address configured yet."}</Text>
+              <Text style={styles.zoneBadgeText}>Zone: {currentUser?.deliveryZone || "Standard Medan Hub"}</Text>
             </View>
           </View>
 
-          {/* Action Buttons for Location */}
-          <View style={styles.locationActionRow}>
+          <View style={styles.locBtnRow}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("pickLocationOnMap")}
-              style={({ pressed }) => [styles.mapActionBtn, styles.mapPickerBtn, pressed && { opacity: 0.85 }]}
+              accessibilityLabel="Pin Location on Map"
+              style={({ pressed }) => [styles.mapActionBtn, pressed && { opacity: 0.85 }]}
               onPress={() => setIsLocationPickerOpen(true)}
             >
-              <MaterialCommunityIcons name="map-marker-plus" size={18} color={colors.onBrandPrimary} />
+              <Ionicons name="map-outline" size={16} color={colors.onBrandPrimary} />
               <Text style={styles.mapActionBtnText}>{t("pickLocationOnMap")}</Text>
             </Pressable>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("viewCustomerLocation")}
-              style={({ pressed }) => [styles.mapActionBtn, styles.mapViewBtn, pressed && { opacity: 0.85 }]}
+              accessibilityLabel="View GPS Route"
+              style={({ pressed }) => [styles.mapSecondaryBtn, pressed && { opacity: 0.85 }]}
               onPress={() => setIsViewLocationModalOpen(true)}
             >
-              <MaterialCommunityIcons name="routes" size={18} color={colors.brandPrimary} />
-              <Text style={styles.mapViewBtnText}>{t("customerMapRoute")}</Text>
+              <Ionicons name="navigate-outline" size={16} color={colors.brandPrimary} />
+              <Text style={styles.mapSecondaryBtnText}>Inspect Route</Text>
             </Pressable>
           </View>
         </View>
 
-        {/* WhatsApp Direct Help */}
+        {/* Push Notification Card */}
         <View style={styles.card}>
           <View style={styles.sectionHeaderRow}>
-            <MaterialCommunityIcons name="headset" size={22} color={colors.brandPrimary} />
-            <Text style={styles.sectionTitle}>Need Assistance?</Text>
+            <Ionicons name="notifications-outline" size={22} color={colors.brandPrimary} />
+            <Text style={styles.cardTitle}>Push Notifikasi & Web Alert</Text>
           </View>
-          <Text style={styles.sectionSubtitle}>
-            Direct line with our warehouse dispatcher & sales order desk.
+          <Text style={styles.cardSubtitle}>
+            Terima pembaruan instan saat pesanan dikonfirmasi penjual, pembayaran diverifikasi, atau barang dikirim.
           </Text>
-          <WhatsAppButton
-            phone="+628123456789"
-            message={`Halo Admin SaltDistribute, saya ${currentUser?.name} dari ${currentUser?.companyName}.`}
-            label="Chat WhatsApp Sales Desk"
-            variant="primary"
-          />
+
+          <View style={styles.notifStatusBox}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View
+                style={[
+                  styles.statusDot,
+                  {
+                    backgroundColor:
+                      getNotificationPermissionStatus() === "granted"
+                        ? "#059669"
+                        : getNotificationPermissionStatus() === "denied"
+                        ? "#DC2626"
+                        : "#D97706",
+                  },
+                ]}
+              />
+              <Text style={styles.notifStatusText}>
+                Status:{" "}
+                {getNotificationPermissionStatus() === "granted"
+                  ? "Aktif & Terhubung (Granted)"
+                  : getNotificationPermissionStatus() === "denied"
+                  ? "Diblokir Browser (Denied)"
+                  : "Belum Diaktifkan (Prompt)"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.locBtnRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Aktifkan Notifikasi"
+              style={({ pressed }) => [styles.mapActionBtn, pressed && { opacity: 0.85 }]}
+              onPress={async () => {
+                const granted = await requestNotificationPermission(currentUser?.userId, "buyer");
+                if (granted) {
+                  Alert.alert("Sukses", "Push notifikasi berhasil diaktifkan!");
+                } else {
+                  Alert.alert("Info", "Izin notifikasi tidak diberikan atau diblokir pada pengaturan browser.");
+                }
+              }}
+            >
+              <Ionicons name="notifications-circle-outline" size={18} color={colors.onBrandPrimary} />
+              <Text style={styles.mapActionBtnText}>Aktifkan Notifikasi</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Tes Notifikasi"
+              style={({ pressed }) => [styles.mapSecondaryBtn, pressed && { opacity: 0.85 }]}
+              onPress={async () => {
+                await sendTestNotification();
+              }}
+            >
+              <Ionicons name="paper-plane-outline" size={16} color={colors.brandPrimary} />
+              <Text style={styles.mapSecondaryBtnText}>Kirim Tes Notifikasi</Text>
+            </Pressable>
+          </View>
         </View>
 
-        {/* Demo Switcher */}
-        <View style={styles.demoCard}>
-          <Text style={styles.demoTitle}>🔄 Demo Switcher</Text>
-          <Text style={styles.demoSubtitle}>
-            Switch instantly to the Admin portal to review incoming bookings, verify payments, and manage inventory.
+        {/* Quick Hotline & Support Card */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="headset-outline" size={22} color={colors.brandPrimary} />
+            <Text style={styles.cardTitle}>Support & Assistance</Text>
+          </View>
+          <Text style={styles.cardSubtitle}>
+            Need direct help or wholesale volume quotes above 5 tons? Reach our dispatch logistics team.
           </Text>
+
+          <WhatsAppButton message={`Halo Admin SaltDistribute, saya pembeli grosir ${currentUser?.name || ""} ingin bertanya.`} />
+        </View>
+
+        {/* Portal Switcher */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="swap-horizontal-outline" size={22} color={colors.brandPrimary} />
+            <Text style={styles.cardTitle}>Switch Workspace</Text>
+          </View>
+          <Text style={styles.cardSubtitle}>
+            Access the seller & admin fulfillment operations dashboard.
+          </Text>
+
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Switch to Admin Portal"
+            accessibilityLabel="Switch to Penjual Portal"
             style={({ pressed }) => [styles.switchBtn, pressed && { opacity: 0.85 }]}
             onPress={handleSwitchToAdmin}
           >
-            <MaterialCommunityIcons name="shield-crown-outline" size={20} color={colors.onBrandPrimary} />
-            <Text style={styles.switchBtnText}>Switch to Admin Portal</Text>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.onBrandPrimary} />
+            <Text style={styles.switchBtnText}>Switch to Penjual Portal</Text>
           </Pressable>
         </View>
-
-        {/* Logout Button */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("logout")}
-          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.85 }]}
-          onPress={handleLogout}
-        >
-          <MaterialCommunityIcons name="logout" size={20} color={colors.error} />
-          <Text style={styles.logoutText}>{t("logout")}</Text>
-        </Pressable>
       </ScrollView>
 
       {/* Google Maps Location Picker Modal */}
@@ -232,7 +314,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
     ...shadows.md,
@@ -242,8 +324,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  logoutHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#DC2626",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    ...shadows.sm,
+  },
+  logoutHeaderText: {
+    color: "#FFFFFF",
+    fontSize: type.xs,
+    fontWeight: "800",
+  },
   headerTitle: {
-    fontSize: type.xl,
+    fontSize: type.lg,
     fontWeight: "800",
     color: colors.onBrandPrimary,
   },
@@ -318,6 +420,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.xs,
     borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+    ...shadows.sm,
+  },
+  mapSecondaryBtn: {
+    flex: 1,
+    minHeight: touchTarget.minHeight,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1.5,
+    borderColor: colors.brandPrimary,
+  },
+  locBtnRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  notifStatusBox: {
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  notifStatusText: {
+    fontSize: type.xs,
+    fontWeight: "700",
+    color: colors.onSurface,
   },
   mapPickerBtn: {
     backgroundColor: colors.brandPrimary,
@@ -333,7 +471,7 @@ const styles = StyleSheet.create({
     fontSize: type.xs,
     fontWeight: "800",
   },
-  mapViewBtnText: {
+  mapSecondaryBtnText: {
     color: colors.brandPrimary,
     fontSize: type.xs,
     fontWeight: "800",
@@ -452,6 +590,35 @@ const styles = StyleSheet.create({
     fontSize: type.sm,
     fontWeight: "800",
     color: colors.onBrandPrimary,
+  },
+  cardTitle: {
+    fontSize: type.base,
+    fontWeight: "800",
+    color: colors.onSurface,
+  },
+  cardSubtitle: {
+    fontSize: type.xs + 1,
+    color: colors.onSurfaceSecondary,
+    marginBottom: spacing.xs,
+  },
+  locationBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceSecondary,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+  },
+  locationText: {
+    fontSize: type.sm,
+    fontWeight: "700",
+    color: colors.onSurface,
+  },
+  zoneBadgeText: {
+    fontSize: type.xs,
+    color: colors.brandPrimary,
+    fontWeight: "600",
+    marginTop: 2,
   },
   logoutBtn: {
     flexDirection: "row",

@@ -20,6 +20,7 @@ import { useAuth } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
 import AppLogo from "../../src/components/AppLogo";
+import GuestOrderModal from "../../src/components/GuestOrderModal";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -31,6 +32,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("buyer123");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [guestModalOpen, setGuestModalOpen] = useState(false);
 
   const handleLogin = async (targetEmail = email, targetPass = password) => {
     setError(null);
@@ -116,14 +118,13 @@ export default function LoginScreen() {
         <Text style={styles.h1}>{t("login")}</Text>
 
         <View style={styles.field}>
-          <Text style={styles.label}>{t("email")}</Text>
+          <Text style={styles.label}>Username / Email</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="you@example.com"
+            placeholder="e.g. admin_jaya atau nama@email.com"
             placeholderTextColor={colors.muted}
           />
         </View>
@@ -165,6 +166,34 @@ export default function LoginScreen() {
           )}
         </Pressable>
 
+        {/* OR DIVIDER */}
+        <View style={styles.orRow}>
+          <View style={styles.orLine} />
+          <Text style={styles.orText}>ATAU / OR</Text>
+          <View style={styles.orLine} />
+        </View>
+
+        {/* GUEST QUICK ORDER BUTTON */}
+        <Pressable
+          testID="guest-order-open-btn"
+          accessibilityRole="button"
+          accessibilityLabel={t("guestQuickOrder")}
+          style={({ pressed }) => [
+            styles.guestOrderBtn,
+            pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
+          ]}
+          onPress={() => setGuestModalOpen(true)}
+        >
+          <View style={styles.guestIconBadge}>
+            <MaterialCommunityIcons name="lightning-bolt" size={18} color="#D97706" />
+          </View>
+          <View style={styles.guestBtnTextCol}>
+            <Text style={styles.guestBtnTitle}>⚡ {t("guestQuickOrder")}</Text>
+            <Text style={styles.guestBtnSubtitle}>{t("guestOrderSubtitle")}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={colors.brandPrimary} />
+        </Pressable>
+
         <View style={styles.helperRow}>
           <Text style={styles.helper}>{t("no_account")} </Text>
           <Link href="/(auth)/register" asChild>
@@ -174,6 +203,9 @@ export default function LoginScreen() {
           </Link>
         </View>
       </ScrollView>
+
+      {/* Guest Quick Order Modal */}
+      <GuestOrderModal visible={guestModalOpen} onClose={() => setGuestModalOpen(false)} />
     </KeyboardAvoidingView>
   );
 }
@@ -271,7 +303,57 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   ctaText: { color: colors.onBrandPrimary, fontSize: type.lg, fontWeight: "800" },
-  helperRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: spacing.md },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: spacing.xs,
+    gap: spacing.sm,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  orText: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onSurfaceSecondary,
+    letterSpacing: 0.5,
+  },
+  guestOrderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1.5,
+    borderColor: colors.brandPrimary,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    ...shadows.sm,
+  },
+  guestIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FEF3C7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guestBtnTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  guestBtnTitle: {
+    fontSize: type.base,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+  },
+  guestBtnSubtitle: {
+    fontSize: type.xs,
+    color: colors.onSurfaceSecondary,
+  },
+  helperRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: spacing.sm },
   helper: { color: colors.onSurfaceSecondary, fontSize: type.base },
   helperLink: { color: colors.brandPrimary, fontSize: type.base, fontWeight: "800" },
 });

@@ -1,5 +1,4 @@
-import { Platform, Linking } from "react-native";
-import { DEFAULT_SELLER_LOCATION, COD_MEETING_POINTS } from "./mapsService";
+import { Platform } from "react-native";
 
 export interface LiveBuyerLocation {
   latitude: number;
@@ -11,6 +10,7 @@ export interface LiveBuyerLocation {
   updatedAt: string;
   isSharing: boolean;
   isMockLocation?: boolean;
+  address?: string;
 }
 
 export type ProximityState =
@@ -29,6 +29,10 @@ export interface ProximityAnalysis {
   statusColor: string;
   isNearby: boolean;
 }
+
+// In-memory cache for live device locations
+let cachedSellerLocation: LiveBuyerLocation | null = null;
+let cachedBuyerLocation: LiveBuyerLocation | null = null;
 
 /**
  * Calculate Great-Circle distance between two coordinates in kilometers (Haversine Formula)
@@ -62,7 +66,197 @@ export function estimateTransitMinutes(distanceKm: number, averageSpeedKmh: numb
 }
 
 /**
- * Analyze proximity of buyer's live GPS relative to Seller Device or Meeting Point
+ * Reverse Geocode GPS coordinates to a human-readable street address
+ */
+export async function reverseGeocode(
+  lat: number,
+  lng: number
+): Promise<{ address: string; city?: string; district?: string }> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+      {
+        headers: {
+          "User-Agent": "SaltDistribute-LocationService/1.0",
+          "Accept-Language": "id,en",
+        },
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.display_name) {
+        const addr = data.address || {};
+        const road = addr.road || addr.street || addr.neighbourhood || addr.suburb;
+        const city = addr.city || addr.town || addr.municipality || addr.county || addr.state;
+        const fullStr = road ? `${road}, ${city || ""}` : data.display_name;
+
+        return {
+          address: fullStr.replace(/, +$/, "").trim(),
+          city: city || undefined,
+          district: addr.suburb || addr.district || undefined,
+        };
+      }
+    }
+  } catch (err) {
+    // Fallback gracefully on network error or CORS
+  }
+
+  return {
+    address: `Lokasi GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+  };
+}
+
+/**
+ * Request explicit foreground location permission from the user
+ */
+export async function requestForegroundLocationPermission(): Promise<"granted" | "denied" | "prompt"> {
+  if (Platform.OS === "web" && typeof navigator !== "undefined") {
+    if ("permissions" in navigator && navigator.permissions.query) {
+      try {
+        const result = await navigator.permissions.query({ name: "geolocation" as any });
+        return result.state as "granted" | "denied" | "prompt";
+      } catch {
+        // Fallback for browsers that don't support geolocation permission query
+      }
+    }
+  }
+  return "prompt";
+}
+
+/**
+ * Acquire device GPS position from device hardware across Web and Mobile
+ * Uses explicit foreground permission and high-accuracy GNSS hardware.
+ */
+export async function getDeviceCurrentLocation(): Promise<LiveBuyerLocation | null> {
+  return new Promise((resolve) => {
+    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const geo = await reverseGeocode(lat, lng);
+
+          const result: LiveBuyerLocation = {
+            latitude: lat,
+            longitude: lng,
+            accuracyMeters: Math.round(pos.coords.accuracy || 10),
+            altitudeMeters: pos.coords.altitude ? Math.round(pos.coords.altitude) : null,
+            speedKmh: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : null,
+            headingDegrees: pos.coords.heading ? Math.round(pos.coords.heading) : null,
+            updatedAt: new Date().toISOString(),
+            isSharing: true,
+            isMockLocation: false,
+            address: geo.address,
+          };
+          cachedBuyerLocation = result;
+
+          // Sync with Service Worker for background caching
+          try {
+            const { sendLocationToServiceWorker } = require("./pwaService");
+            sendLocationToServiceWorker(result);
+          } catch {}
+
+          resolve(result);
+        },
+        (err) => {
+          console.warn("Geolocation permission error or unavailable:", err.message);
+          // Return default location if user denies permission
+          const fallback = getDefaultDeviceLocation();
+          resolve(fallback);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+      return;
+    }
+
+    resolve(getDefaultDeviceLocation());
+  });
+}
+
+/**
+ * Watch device location in real-time with background Service Worker sync
+ */
+export function watchDeviceLocation(
+  onUpdate: (location: LiveBuyerLocation) => void
+): () => void {
+  if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.geolocation) {
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const loc: LiveBuyerLocation = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracyMeters: Math.round(pos.coords.accuracy || 10),
+          altitudeMeters: pos.coords.altitude ? Math.round(pos.coords.altitude) : null,
+          speedKmh: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : null,
+          headingDegrees: pos.coords.heading ? Math.round(pos.coords.heading) : null,
+          updatedAt: new Date().toISOString(),
+          isSharing: true,
+          isMockLocation: false,
+        };
+        cachedBuyerLocation = loc;
+
+        // Broadcast to Service Worker
+        try {
+          const { sendLocationToServiceWorker } = require("./pwaService");
+          sendLocationToServiceWorker(loc);
+        } catch {}
+
+        onUpdate(loc);
+      },
+      (err) => console.warn("Location watch error:", err),
+      { enableHighAccuracy: true, maximumAge: 2000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }
+  return () => {};
+}
+
+/**
+ * Get or cache Seller / Admin device location
+ */
+export function setCachedSellerLocation(loc: LiveBuyerLocation) {
+  cachedSellerLocation = loc;
+}
+
+export function getCachedSellerLocation(): LiveBuyerLocation | null {
+  return cachedSellerLocation;
+}
+
+export function setCachedBuyerLocation(loc: LiveBuyerLocation) {
+  cachedBuyerLocation = loc;
+}
+
+export function getCachedBuyerLocation(): LiveBuyerLocation | null {
+  return cachedBuyerLocation;
+}
+
+/**
+ * Default fallback when GPS is strictly turned off in browser settings
+ */
+function getDefaultDeviceLocation(): LiveBuyerLocation {
+  return {
+    latitude: 3.5952,
+    longitude: 98.6722,
+    accuracyMeters: 15,
+    altitudeMeters: 10,
+    speedKmh: 0,
+    headingDegrees: 0,
+    updatedAt: new Date().toISOString(),
+    isSharing: true,
+    isMockLocation: true,
+    address: "Lokasi Default Device",
+  };
+}
+
+/**
+ * Analyze proximity between buyer live GPS and seller device location
  */
 export function analyzeProximity(
   buyerLoc: LiveBuyerLocation | null | undefined,
@@ -80,8 +274,8 @@ export function analyzeProximity(
     };
   }
 
-  const sLat = sellerOrigin?.latitude || DEFAULT_SELLER_LOCATION.lat;
-  const sLng = sellerOrigin?.longitude || DEFAULT_SELLER_LOCATION.lng;
+  const sLat = sellerOrigin?.latitude || cachedSellerLocation?.latitude || 3.5952;
+  const sLng = sellerOrigin?.longitude || cachedSellerLocation?.longitude || 98.6722;
 
   const distFromSeller = calculateDistanceKm(
     sLat,
@@ -92,42 +286,28 @@ export function analyzeProximity(
 
   let distFromTarget = distFromSeller;
 
-  if (meetingPointId) {
-    const mp = COD_MEETING_POINTS.find((p) => p.id === meetingPointId);
-    if (mp) {
-      distFromTarget = calculateDistanceKm(
-        mp.lat,
-        mp.lng,
-        buyerLoc.latitude,
-        buyerLoc.longitude
-      );
-    }
-  }
-
   const estMinutes = estimateTransitMinutes(distFromTarget);
 
-  if (meetingPointId && distFromTarget <= 0.15) {
-    // Within 150 meters
+  if (distFromTarget <= 0.15) {
     return {
       state: "AT_MEETING_POINT",
       distanceFromHubKm: distFromSeller,
       distanceFromMeetingPointKm: distFromTarget,
       estimatedMinutes: estMinutes,
-      statusLabel: "At Meeting Point (Ready)",
-      statusColor: "#059669", // Emerald green
+      statusLabel: "At Destination (Ready)",
+      statusColor: "#059669",
       isNearby: true,
     };
   }
 
   if (distFromTarget <= 0.8) {
-    // Within 800 meters
     return {
       state: "APPROACHING",
       distanceFromHubKm: distFromSeller,
       distanceFromMeetingPointKm: distFromTarget,
       estimatedMinutes: estMinutes,
       statusLabel: "Approaching Nearby (< 1km)",
-      statusColor: "#D97706", // Amber
+      statusColor: "#D97706",
       isNearby: true,
     };
   }
@@ -138,84 +318,34 @@ export function analyzeProximity(
     distanceFromMeetingPointKm: distFromTarget,
     estimatedMinutes: estMinutes,
     statusLabel: `In Transit (${distFromTarget} km away)`,
-    statusColor: "#0284C7", // Sky blue
+    statusColor: "#0284C7",
     isNearby: false,
   };
 }
 
 /**
- * Acquire device GPS position across Web and Mobile environments
+ * Universal Navigation URLs directed from Seller device to Buyer device
  */
-export async function getDeviceCurrentLocation(): Promise<LiveBuyerLocation | null> {
-  return new Promise((resolve) => {
-    // Browser / PWA Geolocation API
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          resolve({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracyMeters: pos.coords.accuracy || 10,
-            altitudeMeters: pos.coords.altitude,
-            speedKmh: pos.coords.speed ? pos.coords.speed * 3.6 : null,
-            headingDegrees: pos.coords.heading,
-            updatedAt: new Date().toISOString(),
-            isSharing: true,
-            isMockLocation: false,
-          });
-        },
-        (err) => {
-          console.warn("Browser geolocation failed or was denied:", err);
-          // Fallback to high-resolution Medan central coordinates for smooth testing
-          resolve(getFallbackLocation());
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
-      );
-      return;
-    }
-
-    // Native Mobile Fallback with Realistic Jitter Simulation for testing
-    resolve(getFallbackLocation());
-  });
-}
-
-/**
- * Realistic default fallback location in Medan industrial corridor
- */
-function getFallbackLocation(): LiveBuyerLocation {
-  // Base: Medan City Industrial Center (approx 3.5952, 98.6722) with micro-jitter
-  const jitterLat = (Math.random() - 0.5) * 0.005;
-  const jitterLng = (Math.random() - 0.5) * 0.005;
-
-  return {
-    latitude: 3.5952 + jitterLat,
-    longitude: 98.6722 + jitterLng,
-    accuracyMeters: 8.5,
-    altitudeMeters: 25,
-    speedKmh: 14.5,
-    headingDegrees: 45,
-    updatedAt: new Date().toISOString(),
-    isSharing: true,
-    isMockLocation: true,
-  };
-}
-
-/**
- * Generate Universal Google Maps Live Navigation URL directed to buyer's live GPS
- */
-export function getBuyerLiveNavigationUrl(lat: number, lng: number, originLat?: number, originLng?: number): string {
-  const oLat = originLat || DEFAULT_SELLER_LOCATION.lat;
-  const oLng = originLng || DEFAULT_SELLER_LOCATION.lng;
+export function getBuyerLiveNavigationUrl(
+  lat: number,
+  lng: number,
+  originLat?: number,
+  originLng?: number
+): string {
+  const oLat = originLat || cachedSellerLocation?.latitude || 3.5952;
+  const oLng = originLng || cachedSellerLocation?.longitude || 98.6722;
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
     `${oLat},${oLng}`
-  )}&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving&utm_campaign=gmp_git_agentskills_v1`;
+  )}&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
 }
 
-/**
- * Generate Waze Live Navigation URL directed to buyer's live GPS
- */
-export function getBuyerWazeNavigationUrl(lat: number, lng: number, originLat?: number, originLng?: number): string {
-  const oLat = originLat || DEFAULT_SELLER_LOCATION.lat;
-  const oLng = originLng || DEFAULT_SELLER_LOCATION.lng;
+export function getBuyerWazeNavigationUrl(
+  lat: number,
+  lng: number,
+  originLat?: number,
+  originLng?: number
+): string {
+  const oLat = originLat || cachedSellerLocation?.latitude || 3.5952;
+  const oLng = originLng || cachedSellerLocation?.longitude || 98.6722;
   return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&from=${oLat},${oLng}`;
 }
