@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,14 +8,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
 import { useAuth } from "../../src/api";
 import { useI18n } from "../../src/i18n";
+import { User } from "../../src/types";
 import LangToggle from "../../src/components/LangToggle";
 import WhatsAppButton from "../../src/components/WhatsAppButton";
+import CustomerLocationModal from "../../src/components/CustomerLocationModal";
+import AppLogo from "../../src/components/AppLogo";
+import { calculateRouteMetrics } from "../../src/services/mapsService";
 
 export default function AdminUsersScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { allUsers, toggleUserStatus, signOut, switchUser } = useAuth();
   const { t } = useI18n();
+
+  const [selectedCustomerForMap, setSelectedCustomerForMap] = useState<User | null>(null);
 
   const buyers = allUsers.filter((u) => u.role === "buyer");
 
@@ -41,7 +47,10 @@ export default function AdminUsersScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <Text style={styles.headerTitle}>{t("userManagement")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <AppLogo variant="badge" size="sm" theme="light" />
+            <Text style={styles.headerTitle}>{t("userManagement")}</Text>
+          </View>
           <LangToggle />
         </View>
       </LinearGradient>
@@ -58,6 +67,10 @@ export default function AdminUsersScreen() {
 
         {buyers.map((user) => {
           const isActive = user.status === "active";
+          const userLat = user.latitude || 3.7042;
+          const userLng = user.longitude || 98.6912;
+          const metrics = calculateRouteMetrics(userLat, userLng);
+
           return (
             <View key={user.userId} style={styles.userCard}>
               <View style={styles.userTop}>
@@ -88,13 +101,27 @@ export default function AdminUsersScreen() {
               <View style={styles.detailsBox}>
                 <Text style={styles.detailLine}>📧 Email: {user.email}</Text>
                 <Text style={styles.detailLine}>📱 WhatsApp: {user.phoneNumber}</Text>
-                {user.address ? (
-                  <Text style={styles.detailLine}>📍 Delivery: {user.address}</Text>
-                ) : null}
+                <View style={styles.locationDetailRow}>
+                  <MaterialCommunityIcons name="map-marker-radius" size={14} color={colors.brandPrimary} />
+                  <Text style={styles.detailLineLocation} numberOfLines={1}>
+                    {user.address || "Kawasan Belawan / Medan"} ({metrics.distanceKm} km dari Hub)
+                  </Text>
+                </View>
               </View>
 
               {/* Actions with 48dp touch heights */}
               <View style={styles.userActions}>
+                {/* View Location on Google Maps Modal Button */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Lihat lokasi Google Maps ${user.name}`}
+                  style={({ pressed }) => [styles.viewLocBtn, pressed && { opacity: 0.85 }]}
+                  onPress={() => setSelectedCustomerForMap(user)}
+                >
+                  <MaterialCommunityIcons name="google-maps" size={16} color={colors.onBrandPrimary} />
+                  <Text style={styles.viewLocBtnText}>{t("viewCustomerLocation")}</Text>
+                </Pressable>
+
                 <WhatsAppButton
                   phone={user.phoneNumber}
                   message={`Halo ${user.name}, ini dari Admin SaltDistribute.`}
@@ -164,6 +191,13 @@ export default function AdminUsersScreen() {
           <Text style={styles.logoutText}>{t("logout")}</Text>
         </Pressable>
       </ScrollView>
+
+      {/* Customer Google Maps Location Inspection Modal */}
+      <CustomerLocationModal
+        visible={!!selectedCustomerForMap}
+        user={selectedCustomerForMap}
+        onClose={() => setSelectedCustomerForMap(null)}
+      />
     </View>
   );
 }
@@ -205,6 +239,33 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     gap: spacing.sm,
     ...shadows.sm,
+  },
+  locationDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  detailLineLocation: {
+    fontSize: type.xs,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+    flex: 1,
+  },
+  viewLocBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    minHeight: touchTarget.minHeight,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+    ...shadows.sm,
+  },
+  viewLocBtnText: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onBrandPrimary,
   },
   userTop: {
     flexDirection: "row",

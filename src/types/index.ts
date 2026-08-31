@@ -11,6 +11,9 @@ export interface User {
   status: UserStatus;
   companyName?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
+  deliveryZone?: string;
   createdAt: string;
 }
 

@@ -19,6 +19,7 @@ import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../
 import { useAuth } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
+import AppLogo from "../../src/components/AppLogo";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -70,13 +71,10 @@ export default function LoginScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.lg }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <View style={styles.logoRow}>
-            <MaterialCommunityIcons name="shaker-outline" size={34} color={colors.onBrandPrimary} />
-            <Text style={styles.brand}>SaltDistribute</Text>
-          </View>
+          <AppLogo variant="compact" size="md" theme="light" />
           <LangToggle />
         </View>
-        <View style={layout.centeredContainer}>
+        <View style={[layout.centeredContainer, { marginTop: spacing.sm }]}>
           <Text style={styles.tagline}>{t("tagline")}</Text>
         </View>
       </LinearGradient>

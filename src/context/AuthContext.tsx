@@ -15,6 +15,8 @@ const INITIAL_USERS: User[] = [
     role: "admin",
     status: "active",
     companyName: "PT SaltDistribute Indonesia",
+    latitude: 3.7844,
+    longitude: 98.6833,
     createdAt: "2026-08-01T00:00:00Z",
   },
   {
@@ -27,6 +29,9 @@ const INITIAL_USERS: User[] = [
     status: "active",
     companyName: "PT Jaya Mandiri Pangan",
     address: "Jl. Industri Belawan No. 45, Medan",
+    latitude: 3.7745,
+    longitude: 98.681,
+    deliveryZone: "KIM 1 / 2 / 3 & Belawan",
     createdAt: "2026-08-15T00:00:00Z",
   },
   {
@@ -39,6 +44,9 @@ const INITIAL_USERS: User[] = [
     status: "active",
     companyName: "CV Dapur Lestari Utama",
     address: "Kawasan Industri Medan (KIM 2), Deli Serdang",
+    latitude: 3.7042,
+    longitude: 98.6912,
+    deliveryZone: "KIM 1 / 2 / 3 & Belawan",
     createdAt: "2026-08-20T00:00:00Z",
   },
 ];
@@ -50,6 +58,7 @@ interface AuthContextType {
   signIn: (email: string, pass: string) => Promise<User>;
   signOut: () => Promise<void>;
   registerBuyer: (data: Omit<User, "userId" | "role" | "status" | "createdAt">) => Promise<User>;
+  updateProfile: (data: Partial<User>) => Promise<User>;
   toggleUserStatus: (userId: string) => void;
   resetUserPassword: (userId: string) => void;
   switchUser: (role: UserRole) => void;
@@ -62,6 +71,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => { throw new Error("Unimplemented"); },
   signOut: async () => {},
   registerBuyer: async () => { throw new Error("Unimplemented"); },
+  updateProfile: async () => { throw new Error("Unimplemented"); },
   toggleUserStatus: () => {},
   resetUserPassword: () => {},
   switchUser: () => {},
@@ -141,6 +151,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newUser;
   };
 
+  const updateProfile = async (data: Partial<User>): Promise<User> => {
+    if (!currentUser) throw new Error("No active user session");
+    const updatedUser: User = {
+      ...currentUser,
+      ...data,
+    };
+
+    const updatedList = allUsers.map((u) => (u.userId === updatedUser.userId ? updatedUser : u));
+    await saveUsers(updatedList);
+    setCurrentUser(updatedUser);
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
+  };
+
   const toggleUserStatus = (userId: string) => {
     const updated = allUsers.map((u) => {
       if (u.userId === userId) {
@@ -173,6 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         registerBuyer,
+        updateProfile,
         toggleUserStatus,
         resetUserPassword,
         switchUser,

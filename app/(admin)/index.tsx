@@ -21,6 +21,7 @@ import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
 import RestockModal from "../../src/components/RestockModal";
 import OrderInvestigationModal from "../../src/components/OrderInvestigationModal";
+import AppLogo from "../../src/components/AppLogo";
 import {
   RevenueTrendChart,
   TierBreakdownChart,
@@ -214,9 +215,10 @@ export default function AdminDashboardScreen() {
         <View style={[styles.headerRow, layout.centeredContainer]}>
           <View style={styles.headerTitleGroup}>
             <View style={styles.badgeRow}>
+              <AppLogo variant="badge" size="sm" theme="light" />
               <View style={styles.executiveBadge}>
-                <MaterialCommunityIcons name="shield-crown" size={14} color={colors.onBrandPrimary} />
-                <Text style={styles.executiveBadgeText}>EXECUTIVE TELEMETRY</Text>
+                <MaterialCommunityIcons name="shield-crown" size={13} color={colors.onBrandPrimary} />
+                <Text style={styles.executiveBadgeText}>ADMIN</Text>
               </View>
               <View
                 style={[

@@ -13,8 +13,8 @@ import { WebView } from "react-native-webview";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
 import { Booking } from "../types";
-import { formatIDR } from "../api";
-import { WAREHOUSE_HUB, COD_MEETING_POINTS } from "../services/mapsService";
+import { useAuth, formatIDR } from "../api";
+import { DEFAULT_SELLER_LOCATION, COD_MEETING_POINTS } from "../services/mapsService";
 import {
   analyzeProximity,
   getBuyerLiveNavigationUrl,
@@ -32,15 +32,20 @@ export default function AdminLiveRadarModal({
   booking,
   onClose,
 }: AdminLiveRadarModalProps) {
+  const { currentUser } = useAuth();
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
 
   if (!booking) return null;
+
+  const sellerLat = (currentUser?.role === "admin" ? currentUser.latitude : undefined) || DEFAULT_SELLER_LOCATION.lat;
+  const sellerLng = (currentUser?.role === "admin" ? currentUser.longitude : undefined) || DEFAULT_SELLER_LOCATION.lng;
+  const sellerLabel = "Lokasi Admin / Penjual (Live GPS)";
 
   const meetingPoint = booking.meetingPointId
     ? COD_MEETING_POINTS.find((mp) => mp.id === booking.meetingPointId)
     : undefined;
 
-  const proximity = analyzeProximity(booking.liveLocation, booking.meetingPointId);
+  const proximity = analyzeProximity(booking.liveLocation, booking.meetingPointId, { latitude: sellerLat, longitude: sellerLng });
   const isSharing = booking.liveLocation?.isSharing && booking.liveLocation.latitude;
 
   // Destination fallback if GPS not active
@@ -49,12 +54,12 @@ export default function AdminLiveRadarModal({
   const accuracyMeters = booking.liveLocation?.accuracyMeters || 15;
 
   const handleOpenGoogleMaps = () => {
-    const url = getBuyerLiveNavigationUrl(targetLat, targetLng);
+    const url = getBuyerLiveNavigationUrl(targetLat, targetLng, sellerLat, sellerLng);
     Linking.openURL(url).catch((err) => console.warn("Could not open Google Maps", err));
   };
 
   const handleOpenWaze = () => {
-    const url = getBuyerWazeNavigationUrl(targetLat, targetLng);
+    const url = getBuyerWazeNavigationUrl(targetLat, targetLng, sellerLat, sellerLng);
     Linking.openURL(url).catch((err) => console.warn("Could not open Waze", err));
   };
 
@@ -122,7 +127,7 @@ export default function AdminLiveRadarModal({
     <script>
       let map;
       function initRadarMap() {
-        const hubPos = { lat: ${WAREHOUSE_HUB.lat}, lng: ${WAREHOUSE_HUB.lng} };
+        const hubPos = { lat: ${sellerLat}, lng: ${sellerLng} };
         const buyerPos = { lat: ${targetLat}, lng: ${targetLng} };
 
         const bounds = new google.maps.LatLngBounds();
@@ -139,18 +144,18 @@ export default function AdminLiveRadarModal({
 
         map.fitBounds(bounds, { top: 60, bottom: 40, left: 40, right: 40 });
 
-        // Warehouse Hub Marker
+        // Seller Device Location Marker
         const hubMarker = new google.maps.Marker({
           position: hubPos,
           map: map,
-          title: "${WAREHOUSE_HUB.name}",
+          title: "${sellerLabel}",
           icon: {
             url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
           }
         });
 
         const hubInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-hub">DISPATCH HUB</span><br/><b>${WAREHOUSE_HUB.name}</b><br/>${WAREHOUSE_HUB.facility}</div>'
+          content: '<div style="padding:4px;"><span class="badge-hub">SELLER DEVICE</span><br/><b>${sellerLabel}</b><br/>Titik Berangkat Penjual (Live GPS)</div>'
         });
         hubMarker.addListener("click", () => hubInfo.open(map, hubMarker));
 
@@ -310,8 +315,8 @@ export default function AdminLiveRadarModal({
               <View style={styles.locationRow}>
                 <MaterialCommunityIcons name="home-export-outline" size={20} color={colors.brandPrimary} />
                 <View style={styles.locTextGroup}>
-                  <Text style={styles.locLabel}>Origin Warehouse Terminal</Text>
-                  <Text style={styles.locValue}>{WAREHOUSE_HUB.name} ({WAREHOUSE_HUB.facility})</Text>
+                  <Text style={styles.locLabel}>Titik Berangkat Penjual (Admin Live GPS)</Text>
+                  <Text style={styles.locValue}>{sellerLabel} &bull; {sellerLat.toFixed(4)}, {sellerLng.toFixed(4)}</Text>
                 </View>
               </View>
 

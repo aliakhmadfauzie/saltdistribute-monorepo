@@ -23,6 +23,8 @@ import StockBanner from "../../src/components/StockBanner";
 import TierSelector from "../../src/components/TierSelector";
 import LangToggle from "../../src/components/LangToggle";
 import GoogleDeliveryMapModal from "../../src/components/GoogleDeliveryMapModal";
+import GoogleLocationPickerModal, { SelectedLocationResult } from "../../src/components/GoogleLocationPickerModal";
+import AppLogo from "../../src/components/AppLogo";
 import { COD_MEETING_POINTS } from "../../src/services/mapsService";
 import { UnitTier } from "../../src/types";
 
@@ -57,9 +59,12 @@ export default function BuyerDashboardScreen() {
   const [selectedZone, setSelectedZone] = useState<string>("Medan Kota & Sekitarnya");
   const [selectedMeetingPointId, setSelectedMeetingPointId] = useState<string>(COD_MEETING_POINTS[0].id);
   const [address, setAddress] = useState(currentUser?.address || "");
+  const [customLat, setCustomLat] = useState<number | undefined>(currentUser?.latitude);
+  const [customLng, setCustomLng] = useState<number | undefined>(currentUser?.longitude);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
+  const [isLocationPickerVisible, setIsLocationPickerVisible] = useState(false);
 
   // Active user bookings for the quick-tracker widget
   const userBookings = bookings.filter((b) => b.buyerId === currentUser?.userId);
@@ -116,6 +121,15 @@ export default function BuyerDashboardScreen() {
     setCustomGramInput(updated.toString());
   };
 
+  const handleLocationConfirmed = (loc: SelectedLocationResult) => {
+    setAddress(loc.address);
+    setCustomLat(loc.latitude);
+    setCustomLng(loc.longitude);
+    if (deliveryOption?.deliveryZones?.some((z) => z.zoneName === loc.zoneName)) {
+      setSelectedZone(loc.zoneName);
+    }
+  };
+
   const handleSubmitOrder = async () => {
     if (!currentUser) return;
     if (effectiveGrams <= 0) {
@@ -167,6 +181,16 @@ export default function BuyerDashboardScreen() {
         meetingPointId: deliveryType === "COD" ? selectedMeetingPoint.id : undefined,
         meetingPointName: deliveryType === "COD" ? selectedMeetingPoint.name : undefined,
         estimatedDistanceKm: deliveryType === "COD" ? selectedMeetingPoint.distanceFromHubKm : activeZoneObj?.fee ? 22.4 : 10,
+        liveLocation:
+          customLat && customLng
+            ? {
+                latitude: customLat,
+                longitude: customLng,
+                accuracyMeters: 10,
+                updatedAt: new Date().toISOString(),
+                isSharing: true,
+              }
+            : undefined,
         notes: notes.trim() || undefined,
       });
 
@@ -206,10 +230,7 @@ export default function BuyerDashboardScreen() {
         <View style={[styles.headerRow, layout.centeredContainer]}>
           <View style={styles.headerInfo}>
             <View style={styles.badgeRow}>
-              <View style={styles.verifiedBadge}>
-                <MaterialCommunityIcons name="check-decagram" size={13} color={colors.onBrandPrimary} />
-                <Text style={styles.verifiedBadgeText}>VERIFIED BUYER</Text>
-              </View>
+              <AppLogo variant="badge" size="sm" theme="light" />
               <View style={styles.maxCapBadge}>
                 <Text style={styles.maxCapBadgeText}>MAX 5.0G</Text>
               </View>
@@ -817,7 +838,18 @@ export default function BuyerDashboardScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.inputLabel}>{t("address")} *</Text>
+                <View style={styles.zoneHeaderTop}>
+                  <Text style={styles.inputLabel}>{t("address")} *</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("pickLocationOnMap")}
+                    style={styles.mapInspectBtn}
+                    onPress={() => setIsLocationPickerVisible(true)}
+                  >
+                    <MaterialCommunityIcons name="google-maps" size={14} color={colors.brandPrimary} />
+                    <Text style={styles.mapInspectBtnText}>{t("pickLocationOnMap")}</Text>
+                  </Pressable>
+                </View>
                 <TextInput
                   style={styles.textInput}
                   value={address}
@@ -825,6 +857,14 @@ export default function BuyerDashboardScreen() {
                   placeholder="Jl. Medan - Belawan No. 45..."
                   placeholderTextColor={colors.muted}
                 />
+                {customLat && customLng ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                    <MaterialCommunityIcons name="crosshairs-gps" size={14} color={colors.brandPrimary} />
+                    <Text style={{ fontSize: type.xs - 1, color: colors.brandPrimary, fontWeight: "700" }}>
+                      GPS: {customLat.toFixed(4)}, {customLng.toFixed(4)} ({selectedZone})
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           ) : null}
@@ -964,6 +1004,16 @@ export default function BuyerDashboardScreen() {
         meetingPointName={deliveryType === "COD" ? selectedMeetingPoint.name : undefined}
         deliveryAddress={deliveryType === "DELIVERY" ? address : selectedMeetingPoint.address}
         deliveryFee={deliveryFee}
+      />
+
+      {/* Google Maps Location Picker Modal */}
+      <GoogleLocationPickerModal
+        visible={isLocationPickerVisible}
+        onClose={() => setIsLocationPickerVisible(false)}
+        initialAddress={address}
+        initialLat={customLat}
+        initialLng={customLng}
+        onConfirm={handleLocationConfirmed}
       />
     </View>
   );

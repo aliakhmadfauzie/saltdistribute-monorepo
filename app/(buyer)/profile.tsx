@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -10,12 +10,38 @@ import { useAuth } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
 import WhatsAppButton from "../../src/components/WhatsAppButton";
+import GoogleLocationPickerModal, { SelectedLocationResult } from "../../src/components/GoogleLocationPickerModal";
+import CustomerLocationModal from "../../src/components/CustomerLocationModal";
+import AppLogo from "../../src/components/AppLogo";
+import { calculateRouteMetrics } from "../../src/services/mapsService";
 
 export default function BuyerProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { currentUser, signOut, switchUser } = useAuth();
+  const { currentUser, allUsers, signOut, switchUser, updateProfile } = useAuth();
   const { t } = useI18n();
+
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+  const [isViewLocationModalOpen, setIsViewLocationModalOpen] = useState(false);
+
+  const adminUser = allUsers.find((u) => u.role === "admin");
+  const buyerLat = currentUser?.latitude || 3.7042;
+  const buyerLng = currentUser?.longitude || 98.6912;
+  const metrics = calculateRouteMetrics(buyerLat, buyerLng, adminUser?.latitude, adminUser?.longitude);
+
+  const handleUpdateLocation = async (res: SelectedLocationResult) => {
+    try {
+      await updateProfile({
+        address: res.address,
+        latitude: res.latitude,
+        longitude: res.longitude,
+        deliveryZone: res.zoneName,
+      });
+      Alert.alert("Sukses", t("locationUpdatedSuccess"));
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to update profile location");
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -35,7 +61,10 @@ export default function BuyerProfileScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <Text style={styles.headerTitle}>Buyer Account</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <AppLogo variant="badge" size="sm" theme="light" />
+            <Text style={styles.headerTitle}>Buyer Account</Text>
+          </View>
           <LangToggle />
         </View>
       </LinearGradient>
@@ -74,10 +103,62 @@ export default function BuyerProfileScreen() {
             <Text style={styles.infoLabel}>{t("phone")}</Text>
             <Text style={styles.infoValue}>{currentUser?.phoneNumber}</Text>
           </View>
+        </View>
 
-          <View style={styles.infoField}>
-            <Text style={styles.infoLabel}>{t("address")}</Text>
-            <Text style={styles.infoValue}>{currentUser?.address || "No delivery address specified"}</Text>
+        {/* Saved Delivery Destination & Google Maps Card */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <MaterialCommunityIcons name="google-maps" size={22} color={colors.brandPrimary} />
+            <Text style={styles.sectionTitle}>{t("customerLocation")}</Text>
+          </View>
+
+          <View style={styles.locationPreviewBox}>
+            <View style={styles.locRow}>
+              <MaterialCommunityIcons name="map-marker-radius" size={20} color={colors.error} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.locAddressText}>
+                  {currentUser?.address || "Jl. Industri Belawan / Medan"}
+                </Text>
+                <Text style={styles.locGeoSub}>
+                  GPS: {buyerLat.toFixed(4)}, {buyerLng.toFixed(4)} &bull; {metrics.zoneName}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.locMetricsGrid}>
+              <View style={styles.locMetricItem}>
+                <Text style={styles.locMetricLabel}>{t("distanceFromHub")}</Text>
+                <Text style={styles.locMetricVal}>{metrics.distanceKm} km</Text>
+              </View>
+              <View style={styles.locMetricDivider} />
+              <View style={styles.locMetricItem}>
+                <Text style={styles.locMetricLabel}>{t("estTransitDuration")}</Text>
+                <Text style={styles.locMetricVal}>~{metrics.estimatedMinutes} mins</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Action Buttons for Location */}
+          <View style={styles.locationActionRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("pickLocationOnMap")}
+              style={({ pressed }) => [styles.mapActionBtn, styles.mapPickerBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => setIsLocationPickerOpen(true)}
+            >
+              <MaterialCommunityIcons name="map-marker-plus" size={18} color={colors.onBrandPrimary} />
+              <Text style={styles.mapActionBtnText}>{t("pickLocationOnMap")}</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("viewCustomerLocation")}
+              style={({ pressed }) => [styles.mapActionBtn, styles.mapViewBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => setIsViewLocationModalOpen(true)}
+            >
+              <MaterialCommunityIcons name="routes" size={18} color={colors.brandPrimary} />
+              <Text style={styles.mapViewBtnText}>{t("customerMapRoute")}</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -126,6 +207,23 @@ export default function BuyerProfileScreen() {
           <Text style={styles.logoutText}>{t("logout")}</Text>
         </Pressable>
       </ScrollView>
+
+      {/* Google Maps Location Picker Modal */}
+      <GoogleLocationPickerModal
+        visible={isLocationPickerOpen}
+        onClose={() => setIsLocationPickerOpen(false)}
+        initialAddress={currentUser?.address}
+        initialLat={buyerLat}
+        initialLng={buyerLng}
+        onConfirm={handleUpdateLocation}
+      />
+
+      {/* Customer Google Maps Location Inspection Modal */}
+      <CustomerLocationModal
+        visible={isViewLocationModalOpen}
+        user={currentUser}
+        onClose={() => setIsViewLocationModalOpen(false)}
+      />
     </View>
   );
 }
@@ -153,6 +251,92 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     gap: spacing.md,
+  },
+  locationPreviewBox: {
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  locRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.xs + 2,
+  },
+  locAddressText: {
+    fontSize: type.sm,
+    fontWeight: "700",
+    color: colors.onSurface,
+  },
+  locGeoSub: {
+    fontSize: type.xs - 1,
+    color: colors.brandPrimary,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  locMetricsGrid: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.cardBg,
+    borderRadius: radius.xs,
+    padding: spacing.xs + 2,
+    marginTop: 2,
+  },
+  locMetricItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  locMetricDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: colors.divider,
+  },
+  locMetricLabel: {
+    fontSize: type.xs - 2,
+    color: colors.muted,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  locMetricVal: {
+    fontSize: type.xs + 1,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+    marginTop: 1,
+  },
+  locationActionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  mapActionBtn: {
+    flex: 1,
+    minHeight: touchTarget.minHeight,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+  },
+  mapPickerBtn: {
+    backgroundColor: colors.brandPrimary,
+    ...shadows.sm,
+  },
+  mapViewBtn: {
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: colors.brandPrimary,
+  },
+  mapActionBtnText: {
+    color: colors.onBrandPrimary,
+    fontSize: type.xs,
+    fontWeight: "800",
+  },
+  mapViewBtnText: {
+    color: colors.brandPrimary,
+    fontSize: type.xs,
+    fontWeight: "800",
   },
   card: {
     backgroundColor: colors.cardBg,

@@ -12,9 +12,9 @@ import {
 import { WebView } from "react-native-webview";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../theme";
-import { formatIDR } from "../api";
+import { useAuth, formatIDR } from "../api";
 import {
-  WAREHOUSE_HUB,
+  DEFAULT_SELLER_LOCATION,
   getRouteInfo,
   getGoogleMapsNavigationUrl,
   getWazeNavigationUrl,
@@ -28,6 +28,8 @@ interface GoogleDeliveryMapModalProps {
   meetingPointName?: string;
   deliveryAddress?: string;
   deliveryFee?: number;
+  sellerOriginLat?: number;
+  sellerOriginLng?: number;
 }
 
 export default function GoogleDeliveryMapModal({
@@ -38,24 +40,34 @@ export default function GoogleDeliveryMapModal({
   meetingPointName,
   deliveryAddress,
   deliveryFee = 25000,
+  sellerOriginLat,
+  sellerOriginLng,
 }: GoogleDeliveryMapModalProps) {
+  const { allUsers, currentUser } = useAuth();
   const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
+
+  const adminUser = allUsers.find((u) => u.role === "admin");
+  const sellerLat = sellerOriginLat || (currentUser?.role === "admin" ? currentUser.latitude : adminUser?.latitude) || DEFAULT_SELLER_LOCATION.lat;
+  const sellerLng = sellerOriginLng || (currentUser?.role === "admin" ? currentUser.longitude : adminUser?.longitude) || DEFAULT_SELLER_LOCATION.lng;
+  const sellerLabel = "Lokasi Penjual (Admin GPS)";
 
   const routeInfo = getRouteInfo({
     zoneName,
     meetingPointId,
     customAddress: deliveryAddress || meetingPointName,
+    originLat: sellerLat,
+    originLng: sellerLng,
   });
 
   const isCOD = routeInfo.type === "COD_MEETING_POINT";
 
   const handleOpenGoogleMaps = () => {
-    const url = getGoogleMapsNavigationUrl(routeInfo.lat, routeInfo.lng);
+    const url = getGoogleMapsNavigationUrl(routeInfo.lat, routeInfo.lng, undefined, sellerLat, sellerLng);
     Linking.openURL(url).catch((err) => console.warn("Could not open Google Maps", err));
   };
 
   const handleOpenWaze = () => {
-    const url = getWazeNavigationUrl(routeInfo.lat, routeInfo.lng);
+    const url = getWazeNavigationUrl(routeInfo.lat, routeInfo.lng, sellerLat, sellerLng);
     Linking.openURL(url).catch((err) => console.warn("Could not open Waze", err));
   };
 
@@ -102,7 +114,7 @@ export default function GoogleDeliveryMapModal({
     <script>
       let map;
       function initMap() {
-        const origin = { lat: ${WAREHOUSE_HUB.lat}, lng: ${WAREHOUSE_HUB.lng} };
+        const origin = { lat: ${sellerLat}, lng: ${sellerLng} };
         const dest = { lat: ${routeInfo.lat}, lng: ${routeInfo.lng} };
 
         const bounds = new google.maps.LatLngBounds();
@@ -119,18 +131,18 @@ export default function GoogleDeliveryMapModal({
           streetViewControl: false,
         });
 
-        // Warehouse Origin Marker
+        // Seller Origin Marker
         const originMarker = new google.maps.Marker({
           position: origin,
           map: map,
-          title: "Belawan Marine Logistics Hub",
+          title: "${sellerLabel}",
           icon: {
             url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
           }
         });
 
         const originInfo = new google.maps.InfoWindow({
-          content: '<div style="padding:4px;"><span class="badge-origin">CENTRAL HUB</span><br/><b>${WAREHOUSE_HUB.name}</b><br/>${WAREHOUSE_HUB.facility}</div>'
+          content: '<div style="padding:4px;"><span class="badge-origin">SELLER ORIGIN</span><br/><b>${sellerLabel}</b><br/>Titik Berangkat Penjual</div>'
         });
         originMarker.addListener("click", () => originInfo.open(map, originMarker));
 
@@ -274,8 +286,8 @@ export default function GoogleDeliveryMapModal({
             <View style={styles.locationRow}>
               <MaterialCommunityIcons name="map-marker-radius" size={20} color={colors.brandPrimary} />
               <View style={styles.locTextGroup}>
-                <Text style={styles.locLabel}>Origin Warehouse Hub</Text>
-                <Text style={styles.locValue}>{WAREHOUSE_HUB.name} ({WAREHOUSE_HUB.facility})</Text>
+                <Text style={styles.locLabel}>Titik Berangkat Penjual (Admin GPS)</Text>
+                <Text style={styles.locValue}>{sellerLabel} &bull; {sellerLat.toFixed(4)}, {sellerLng.toFixed(4)}</Text>
               </View>
             </View>
 

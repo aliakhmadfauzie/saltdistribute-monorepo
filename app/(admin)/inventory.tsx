@@ -18,6 +18,7 @@ import { useApp, formatIDR, formatGrams } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
 import RestockModal from "../../src/components/RestockModal";
+import AppLogo from "../../src/components/AppLogo";
 
 export default function AdminInventoryScreen() {
   const insets = useSafeAreaInsets();
@@ -45,7 +46,10 @@ export default function AdminInventoryScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <Text style={styles.headerTitle}>{t("inventoryManager")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <AppLogo variant="badge" size="sm" theme="light" />
+            <Text style={styles.headerTitle}>{t("inventoryManager")}</Text>
+          </View>
           <LangToggle />
         </View>
       </LinearGradient>

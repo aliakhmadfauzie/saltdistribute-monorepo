@@ -82,7 +82,7 @@ const translations = {
     lowStockWarning: "Low Stock Alert: Remaining quantity under threshold!",
     verifiedWholesale: "Verified Wholesale Buyer",
     puritySpec: "NaCl 99.2% High Purity (ISO/Halal Certified)",
-    warehouseHub: "Warehouse Hub: Belawan Marine Terminal, Medan",
+    warehouseHub: "Seller Dispatch: Live Device GPS Location",
 
     // Admin UI
     adminDashboard: "Admin Executive Dashboard",
@@ -162,6 +162,26 @@ const translations = {
     locationDenied: "Location permission not granted",
     locationStale: "Location last updated",
     openRadar: "View Live Buyer Radar",
+
+    // Google Maps Location & Customer Telemetry
+    pickLocationOnMap: "Pin on Google Maps",
+    selectDeliveryLocation: "Select Delivery Location via Google Maps",
+    locationPickerTitle: "Google Maps Location Picker",
+    locationPickerSubtitle: "Tap anywhere on the map or choose industrial cluster presets",
+    searchLocationPlaceholder: "Search area, factory, or landmark...",
+    useCurrentGps: "Use My GPS Location",
+    confirmLocation: "Confirm & Set Location",
+    customerLocation: "Customer Delivery Location",
+    viewCustomerLocation: "View Customer Location",
+    customerMapRoute: "Delivery Route & Dispatch Telemetry",
+    customerCoordinates: "GPS Coordinates",
+    matchedZone: "Matched Delivery Zone",
+    locationUpdatedSuccess: "Delivery location updated successfully!",
+    openInGoogleMaps: "Open in Google Maps",
+    openInWaze: "Open in Waze",
+    distanceFromHub: "Distance from Seller",
+    estTransitDuration: "Estimated Transit",
+    savedLocationPreview: "Saved Delivery Destination",
 
     // Chat
     chatTitle: "Order Discussion Thread",
@@ -253,8 +273,8 @@ const translations = {
     stockCapacity: "Kapasitas Stok Gudang",
     lowStockWarning: "Peringatan: Stok garam tersisa di bawah batas aman!",
     verifiedWholesale: "Pembeli Grosir Terverifikasi",
-    puritySpec: "Kemurnian Tinggi NaCl 99.2% (Sertifikasi ISO/Halal)",
-    warehouseHub: "Hub Gudang: Terminal Belawan, Medan",
+    puritySpec: "NaCl 99.2% Kemurnian Tinggi (Sertifikasi ISO/Halal)",
+    warehouseHub: "Pengiriman: Lokasi Perangkat Penjual (Live GPS)",
 
     // Admin UI
     adminDashboard: "Dashboard Eksekutif Admin",
@@ -334,6 +354,26 @@ const translations = {
     locationDenied: "Izin lokasi belum diberikan",
     locationStale: "Lokasi terakhir diperbarui",
     openRadar: "Lihat Radar Pembeli Live",
+
+    // Google Maps Location & Customer Telemetry
+    pickLocationOnMap: "Pin di Google Maps",
+    selectDeliveryLocation: "Pilih Titik Pengiriman via Google Maps",
+    locationPickerTitle: "Pemilih Titik Lokasi Google Maps",
+    locationPickerSubtitle: "Ketuk peta untuk geser pin atau pilih kawasan industri terdekat",
+    searchLocationPlaceholder: "Cari area, pabrik, atau patokan...",
+    useCurrentGps: "Gunakan Lokasi GPS Saya",
+    confirmLocation: "Konfirmasi & Pasang Titik",
+    customerLocation: "Lokasi Pengiriman Customer",
+    viewCustomerLocation: "Lihat Lokasi Customer",
+    customerMapRoute: "Rute Pengiriman & Telemetri Penjual",
+    customerCoordinates: "Koordinat GPS",
+    matchedZone: "Zona Pengiriman Terpilih",
+    locationUpdatedSuccess: "Titik lokasi pengiriman berhasil diperbarui!",
+    openInGoogleMaps: "Buka di Google Maps",
+    openInWaze: "Buka di Waze",
+    distanceFromHub: "Jarak dari Penjual",
+    estTransitDuration: "Estimasi Pengantaran",
+    savedLocationPreview: "Titik Pengiriman Tersimpan",
 
     // Chat
     chatTitle: "Diskusi Pesanan",

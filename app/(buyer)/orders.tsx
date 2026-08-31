@@ -12,6 +12,7 @@ import BookingCard from "../../src/components/BookingCard";
 import ProofUploadModal from "../../src/components/ProofUploadModal";
 import ChatModal from "../../src/components/ChatModal";
 import LangToggle from "../../src/components/LangToggle";
+import AppLogo from "../../src/components/AppLogo";
 import { Booking } from "../../src/types";
 import { getDeviceCurrentLocation } from "../../src/services/locationService";
 
@@ -75,7 +76,10 @@ export default function BuyerOrdersScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <Text style={styles.headerTitle}>{t("ordersTitle")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <AppLogo variant="badge" size="sm" theme="light" />
+            <Text style={styles.headerTitle}>{t("ordersTitle")}</Text>
+          </View>
           <LangToggle />
         </View>
 

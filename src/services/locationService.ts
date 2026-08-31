@@ -1,5 +1,5 @@
 import { Platform, Linking } from "react-native";
-import { WAREHOUSE_HUB, COD_MEETING_POINTS } from "./mapsService";
+import { DEFAULT_SELLER_LOCATION, COD_MEETING_POINTS } from "./mapsService";
 
 export interface LiveBuyerLocation {
   latitude: number;
@@ -62,11 +62,12 @@ export function estimateTransitMinutes(distanceKm: number, averageSpeedKmh: numb
 }
 
 /**
- * Analyze proximity of buyer's live GPS relative to Warehouse Hub or Meeting Point
+ * Analyze proximity of buyer's live GPS relative to Seller Device or Meeting Point
  */
 export function analyzeProximity(
   buyerLoc: LiveBuyerLocation | null | undefined,
-  meetingPointId?: string
+  meetingPointId?: string,
+  sellerOrigin?: { latitude: number; longitude: number }
 ): ProximityAnalysis {
   if (!buyerLoc || !buyerLoc.isSharing) {
     return {
@@ -79,22 +80,21 @@ export function analyzeProximity(
     };
   }
 
-  const distFromHub = calculateDistanceKm(
-    WAREHOUSE_HUB.lat,
-    WAREHOUSE_HUB.lng,
+  const sLat = sellerOrigin?.latitude || DEFAULT_SELLER_LOCATION.lat;
+  const sLng = sellerOrigin?.longitude || DEFAULT_SELLER_LOCATION.lng;
+
+  const distFromSeller = calculateDistanceKm(
+    sLat,
+    sLng,
     buyerLoc.latitude,
     buyerLoc.longitude
   );
 
-  let targetLat = WAREHOUSE_HUB.lat;
-  let targetLng = WAREHOUSE_HUB.lng;
-  let distFromTarget = distFromHub;
+  let distFromTarget = distFromSeller;
 
   if (meetingPointId) {
     const mp = COD_MEETING_POINTS.find((p) => p.id === meetingPointId);
     if (mp) {
-      targetLat = mp.lat;
-      targetLng = mp.lng;
       distFromTarget = calculateDistanceKm(
         mp.lat,
         mp.lng,
@@ -110,7 +110,7 @@ export function analyzeProximity(
     // Within 150 meters
     return {
       state: "AT_MEETING_POINT",
-      distanceFromHubKm: distFromHub,
+      distanceFromHubKm: distFromSeller,
       distanceFromMeetingPointKm: distFromTarget,
       estimatedMinutes: estMinutes,
       statusLabel: "At Meeting Point (Ready)",
@@ -123,7 +123,7 @@ export function analyzeProximity(
     // Within 800 meters
     return {
       state: "APPROACHING",
-      distanceFromHubKm: distFromHub,
+      distanceFromHubKm: distFromSeller,
       distanceFromMeetingPointKm: distFromTarget,
       estimatedMinutes: estMinutes,
       statusLabel: "Approaching Nearby (< 1km)",
@@ -134,7 +134,7 @@ export function analyzeProximity(
 
   return {
     state: "IN_TRANSIT",
-    distanceFromHubKm: distFromHub,
+    distanceFromHubKm: distFromSeller,
     distanceFromMeetingPointKm: distFromTarget,
     estimatedMinutes: estMinutes,
     statusLabel: `In Transit (${distFromTarget} km away)`,
@@ -203,15 +203,19 @@ function getFallbackLocation(): LiveBuyerLocation {
 /**
  * Generate Universal Google Maps Live Navigation URL directed to buyer's live GPS
  */
-export function getBuyerLiveNavigationUrl(lat: number, lng: number): string {
+export function getBuyerLiveNavigationUrl(lat: number, lng: number, originLat?: number, originLng?: number): string {
+  const oLat = originLat || DEFAULT_SELLER_LOCATION.lat;
+  const oLng = originLng || DEFAULT_SELLER_LOCATION.lng;
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
-    `${WAREHOUSE_HUB.lat},${WAREHOUSE_HUB.lng}`
+    `${oLat},${oLng}`
   )}&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving&utm_campaign=gmp_git_agentskills_v1`;
 }
 
 /**
  * Generate Waze Live Navigation URL directed to buyer's live GPS
  */
-export function getBuyerWazeNavigationUrl(lat: number, lng: number): string {
-  return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&from=${WAREHOUSE_HUB.lat},${WAREHOUSE_HUB.lng}`;
+export function getBuyerWazeNavigationUrl(lat: number, lng: number, originLat?: number, originLng?: number): string {
+  const oLat = originLat || DEFAULT_SELLER_LOCATION.lat;
+  const oLng = originLng || DEFAULT_SELLER_LOCATION.lng;
+  return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes&from=${oLat},${oLng}`;
 }

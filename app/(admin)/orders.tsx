@@ -18,6 +18,7 @@ import { useI18n } from "../../src/i18n";
 import BookingCard from "../../src/components/BookingCard";
 import ChatModal from "../../src/components/ChatModal";
 import LangToggle from "../../src/components/LangToggle";
+import AppLogo from "../../src/components/AppLogo";
 import { Booking } from "../../src/types";
 
 type AdminPipelineTab = "PENDING" | "AWAITING" | "VERIFYING" | "DELIVERING" | "HISTORY";
@@ -94,7 +95,10 @@ export default function AdminOrdersScreen() {
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
-          <Text style={styles.headerTitle}>{t("pipelineTitle")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <AppLogo variant="badge" size="sm" theme="light" />
+            <Text style={styles.headerTitle}>{t("pipelineTitle")}</Text>
+          </View>
           <LangToggle />
         </View>
 

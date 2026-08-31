@@ -19,6 +19,8 @@ import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../
 import { useAuth } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
+import GoogleLocationPickerModal, { SelectedLocationResult } from "../../src/components/GoogleLocationPickerModal";
+import AppLogo from "../../src/components/AppLogo";
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -31,9 +33,20 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
+  const [deliveryZone, setDeliveryZone] = useState<string | undefined>();
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLocationConfirmed = (res: SelectedLocationResult) => {
+    setAddress(res.address);
+    setLatitude(res.latitude);
+    setLongitude(res.longitude);
+    setDeliveryZone(res.zoneName);
+  };
 
   const handleRegister = async () => {
     if (!fullName || !email || !phone || !password) {
@@ -50,10 +63,13 @@ export default function RegisterScreen() {
         email: email.trim().toLowerCase(),
         companyName: companyName.trim(),
         address: address.trim(),
+        latitude,
+        longitude,
+        deliveryZone,
       });
       router.replace("/(buyer)");
     } catch (e: any) {
-      setError(e?.message || "Registration failed");
+      setError(e?.message || "Registration failed. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -79,7 +95,7 @@ export default function RegisterScreen() {
               <MaterialCommunityIcons name="arrow-left" size={24} color={colors.onBrandPrimary} />
             </Pressable>
           </Link>
-          <Text style={styles.headerTitle}>{t("register")}</Text>
+          <AppLogo variant="badge" size="sm" theme="light" />
           <LangToggle />
         </View>
       </LinearGradient>
@@ -140,7 +156,18 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>{t("address")}</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>{t("address")}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("pickLocationOnMap")}
+              style={({ pressed }) => [styles.mapPickerBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => setIsMapModalOpen(true)}
+            >
+              <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
+              <Text style={styles.mapPickerBtnText}>{t("pickLocationOnMap")}</Text>
+            </Pressable>
+          </View>
           <TextInput
             style={styles.input}
             value={address}
@@ -148,6 +175,14 @@ export default function RegisterScreen() {
             placeholder="Jl. Industri Belawan No. 45, Medan"
             placeholderTextColor={colors.muted}
           />
+          {latitude && longitude ? (
+            <View style={styles.geoBadge}>
+              <MaterialCommunityIcons name="map-marker-check" size={14} color={colors.brandPrimary} />
+              <Text style={styles.geoBadgeText}>
+                GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)} ({deliveryZone || "Medan"})
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.field}>
@@ -196,6 +231,16 @@ export default function RegisterScreen() {
           </Link>
         </View>
       </ScrollView>
+
+      {/* Google Maps Location Picker Modal */}
+      <GoogleLocationPickerModal
+        visible={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        initialAddress={address}
+        initialLat={latitude}
+        initialLng={longitude}
+        onConfirm={handleLocationConfirmed}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -219,7 +264,41 @@ const styles = StyleSheet.create({
   headerTitle: { color: colors.onBrandPrimary, fontSize: type.lg, fontWeight: "800" },
   body: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, gap: spacing.md },
   field: { gap: spacing.xs },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   label: { fontSize: type.sm, color: colors.onSurfaceSecondary, fontWeight: "700" },
+  mapPickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
+  mapPickerBtnText: {
+    fontSize: type.xs,
+    fontWeight: "800",
+    color: colors.onBrandTertiary,
+  },
+  geoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.surfaceSecondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.xs,
+    alignSelf: "flex-start",
+  },
+  geoBadgeText: {
+    fontSize: type.xs - 1,
+    color: colors.brandPrimary,
+    fontWeight: "700",
+  },
   input: {
     backgroundColor: colors.cardBg,
     borderRadius: radius.md,
