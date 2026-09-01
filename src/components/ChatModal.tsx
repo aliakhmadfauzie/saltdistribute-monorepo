@@ -11,28 +11,33 @@ import {
   Platform,
   Image,
   Alert,
+  Linking,
+  ActivityIndicator,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useApp, useAuth } from "../api";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useApp, useAuth, formatIDR } from "../api";
 import { useI18n } from "../i18n";
 import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
 import { Booking, ChatMessage } from "../types";
 import { pickDocumentFile, formatFileSize, PickedFileResult } from "../services/filePickerService";
-import { subscribeToChatMessages } from "../services/firestoreService";
+import { subscribeToChatMessages, updateBookingInFirestore } from "../services/firestoreService";
 
 interface ChatModalProps {
   visible: boolean;
   booking: Booking | null;
   onClose: () => void;
+  onOrderCompleted?: (bookingId: string) => void;
 }
 
-export default function ChatModal({ visible, booking, onClose }: ChatModalProps) {
-  const { chats, sendMessage } = useApp();
+export default function ChatModal({ visible, booking, onClose, onOrderCompleted }: ChatModalProps) {
+  const { chats, sendMessage, completeBooking, getWhatsAppSellerUrl, refreshAllData } = useApp();
   const { currentUser } = useAuth();
   const { t } = useI18n();
   const [inputText, setInputText] = useState("");
   const [attachedFile, setAttachedFile] = useState<PickedFileResult | null>(null);
   const [isPicking, setIsPicking] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
@@ -52,10 +57,12 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
   // Merge live Firestore messages with local fallback if empty
   const messages = liveMessages.length > 0 ? liveMessages : localMessages;
 
+  const isCompleted = booking.status === "COMPLETED";
+
   const handlePickAttachment = async () => {
     setIsPicking(true);
     try {
-      const file = await pickDocumentFile("image/*,application/pdf,.doc,.docx");
+      const file = await pickDocumentFile("application/pdf,image/*,.doc,.docx");
       if (file) {
         setAttachedFile(file);
       }
@@ -85,6 +92,87 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
     setAttachedFile(null);
   };
 
+  const handleCallWhatsApp = () => {
+    const waUrl = getWhatsAppSellerUrl(booking);
+    Linking.openURL(waUrl).catch((err) => {
+      console.warn("Could not launch WhatsApp call:", err);
+      Alert.alert("WhatsApp Error", "Unable to open WhatsApp on this device.");
+    });
+  };
+
+  const handleMarkOrderComplete = async () => {
+    Alert.alert(
+      "Selesaikan Pesanan",
+      "Apakah Anda yakin ingin menyelesaikan transaksi ini? Riwayat percakapan dan detail pesanan akan diarsipkan.",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Ya, Selesaikan",
+          style: "default",
+          onPress: async () => {
+            setIsCompleting(true);
+            try {
+              completeBooking(booking.bookingId);
+              await updateBookingInFirestore(booking.bookingId, {
+                status: "COMPLETED",
+                completedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }).catch(() => {});
+              
+              if (onOrderCompleted) {
+                onOrderCompleted(booking.bookingId);
+              }
+              refreshAllData().catch(() => {});
+              onClose();
+            } catch (err: any) {
+              Alert.alert("Error", err?.message || "Gagal menyelesaikan pesanan.");
+            } finally {
+              setIsCompleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Dynamic Status Banner Content
+  const getStatusBannerInfo = () => {
+    switch (booking.status) {
+      case "PENDING_CONFIRMATION":
+        return {
+          text: t("sellerWaitingStatus"),
+          bg: "#FEF3C7",
+          color: "#92400E",
+          icon: "clock-outline" as const,
+        };
+      case "AWAITING_PAYMENT":
+      case "PAYMENT_VERIFICATION":
+      case "CONFIRMED_DELIVERING":
+        return {
+          text: t("sellerPreparingStatus"),
+          bg: "#DCFCE7",
+          color: "#15803D",
+          icon: "truck-delivery-outline" as const,
+        };
+      case "COMPLETED":
+        return {
+          text: t("orderCompletedArchived"),
+          bg: "#E0F2FE",
+          color: "#0369A1",
+          icon: "check-decagram-outline" as const,
+        };
+      default:
+        return {
+          text: `Status: ${booking.status}`,
+          bg: colors.surfaceContainer,
+          color: colors.onSurface,
+          icon: "information-outline" as const,
+        };
+    }
+  };
+
+  const statusBanner = getStatusBannerInfo();
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -97,20 +185,98 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
             <View style={styles.dragHandle} />
           </View>
 
+          {/* Header with Seller Identity & WhatsApp Call Button */}
           <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{t("chatTitle")}</Text>
-              <Text style={styles.subtitle}>Order #{booking.bookingId}</Text>
+            <View style={styles.sellerAvatarBox}>
+              <MaterialCommunityIcons name="storefront-outline" size={22} color="#FFFFFF" />
+              <View style={styles.onlineDot} />
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Tutup percakapan"
-              onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <MaterialCommunityIcons name="close" size={24} color={colors.onSurface} />
-            </Pressable>
+
+            <View style={styles.headerInfo}>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.sellerName} numberOfLines={1}>
+                  Admin Penjual Resmi
+                </Text>
+                <View style={styles.verifiedPill}>
+                  <MaterialCommunityIcons name="shield-check" size={12} color="#15803D" />
+                  <Text style={styles.verifiedText}>OFFICIAL</Text>
+                </View>
+              </View>
+              <Text style={styles.subtitle}>
+                #{booking.bookingId.substring(0, 14)} &bull; {booking.buyerName}
+              </Text>
+            </View>
+
+            {/* Header Right Action Buttons: Call & Close */}
+            <View style={styles.headerActionRow}>
+              {/* WhatsApp Direct Call Button */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Panggilan WhatsApp Penjual"
+                onPress={handleCallWhatsApp}
+                style={({ pressed }) => [styles.callBtn, pressed && { opacity: 0.85 }]}
+              >
+                <Ionicons name="call" size={16} color="#FFFFFF" />
+              </Pressable>
+
+              {/* Close Button */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Tutup percakapan"
+                onPress={onClose}
+                style={styles.closeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialCommunityIcons name="close" size={20} color={colors.onSurface} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Dynamic Real-time Status Banner */}
+          <View style={[styles.statusBanner, { backgroundColor: statusBanner.bg }]}>
+            <MaterialCommunityIcons name={statusBanner.icon} size={16} color={statusBanner.color} />
+            <Text style={[styles.statusBannerText, { color: statusBanner.color }]}>
+              {statusBanner.text}
+            </Text>
+          </View>
+
+          {/* Pinned Order Summary Overview Card */}
+          <View style={styles.pinnedOrderCard}>
+            <View style={styles.orderCardLeft}>
+              <MaterialCommunityIcons name="package-variant-closed" size={22} color={colors.brandPrimary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.orderCardTitle} numberOfLines={1}>
+                  {booking.packageLabel || `${booking.quantityGram}g Garam NaCl 99.2%`}
+                </Text>
+                <Text style={styles.orderCardSubtitle}>
+                  {booking.deliveryType === "COD" ? "Titik Temu COD" : "Pengiriman Langsung"} &bull; {formatIDR(booking.grandTotal)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Mark as Completed Button */}
+            {!isCompleted && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Tandai pesanan selesai"
+                style={({ pressed }) => [
+                  styles.completeActionBtn,
+                  pressed && { opacity: 0.85 },
+                  isCompleting && { opacity: 0.6 },
+                ]}
+                onPress={handleMarkOrderComplete}
+                disabled={isCompleting}
+              >
+                {isCompleting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="check-all" size={14} color="#FFFFFF" />
+                    <Text style={styles.completeActionBtnText}>Selesai</Text>
+                  </>
+                )}
+              </Pressable>
+            )}
           </View>
 
           <ScrollView
@@ -120,8 +286,10 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
           >
             {messages.length === 0 ? (
               <View style={styles.emptyBox}>
-                <MaterialCommunityIcons name="chat-outline" size={40} color={colors.muted} />
-                <Text style={styles.emptyText}>No messages yet. Send a note or attach a document to discuss order dispatch.</Text>
+                <MaterialCommunityIcons name="chat-processing-outline" size={40} color={colors.muted} />
+                <Text style={styles.emptyText}>
+                  Percakapan aktif dimulai. Kirim pesan atau lampirkan dokumen PDF/gambar untuk koordinasi pengiriman.
+                </Text>
               </View>
             ) : (
               messages.map((msg) => {
@@ -155,15 +323,15 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
                           <View style={styles.chatDocCard}>
                             <MaterialCommunityIcons
                               name={msg.attachmentType === "pdf" ? "file-pdf-box" : "file-document-outline"}
-                              size={24}
+                              size={26}
                               color={msg.attachmentType === "pdf" ? "#DC2626" : colors.brandPrimary}
                             />
                             <View style={{ flex: 1 }}>
                               <Text style={styles.chatDocName} numberOfLines={1}>
-                                {msg.attachmentName || "Attached_Document.pdf"}
+                                {msg.attachmentName || "Document.pdf"}
                               </Text>
                               <Text style={styles.chatDocType}>
-                                {msg.attachmentType ? msg.attachmentType.toUpperCase() : "FILE"}
+                                {msg.attachmentType ? msg.attachmentType.toUpperCase() : "PDF FILE"}
                               </Text>
                             </View>
                           </View>
@@ -188,7 +356,7 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
             <View style={styles.attachmentDraftBar}>
               <MaterialCommunityIcons
                 name={attachedFile.type === "pdf" ? "file-pdf-box" : "file-image"}
-                size={22}
+                size={24}
                 color={attachedFile.type === "pdf" ? "#DC2626" : colors.brandPrimary}
               />
               <View style={{ flex: 1 }}>
@@ -196,7 +364,7 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
                   {attachedFile.name}
                 </Text>
                 <Text style={styles.attachmentDraftSize}>
-                  {formatFileSize(attachedFile.sizeBytes)} &bull; Ready to send
+                  {formatFileSize(attachedFile.sizeBytes)} &bull; {attachedFile.type?.toUpperCase() || "PDF"}
                 </Text>
               </View>
               <Pressable
@@ -205,17 +373,17 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
                 onPress={() => setAttachedFile(null)}
                 style={styles.removeDraftBtn}
               >
-                <MaterialCommunityIcons name="close-circle" size={18} color={colors.muted} />
+                <MaterialCommunityIcons name="close-circle" size={20} color={colors.muted} />
               </Pressable>
             </View>
           )}
 
-          {/* Input Action Row with Attachment Button */}
+          {/* Input Action Bar with Advanced File Picker */}
           <View style={styles.inputRow}>
             {/* Attachment Button */}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Attach Document or File"
+              accessibilityLabel="Attach PDF or Document"
               style={({ pressed }) => [
                 styles.attachClipBtn,
                 pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] },
@@ -223,7 +391,11 @@ export default function ChatModal({ visible, booking, onClose }: ChatModalProps)
               onPress={handlePickAttachment}
               disabled={isPicking}
             >
-              <MaterialCommunityIcons name="paperclip" size={22} color={colors.brandPrimary} />
+              {isPicking ? (
+                <ActivityIndicator size="small" color={colors.brandPrimary} />
+              ) : (
+                <MaterialCommunityIcons name="paperclip" size={22} color={colors.brandPrimary} />
+              )}
             </Pressable>
 
             <TextInput
@@ -261,7 +433,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    height: "82%",
+    height: "85%",
     width: "100%",
     maxWidth: 640,
     alignSelf: "center",
@@ -269,7 +441,7 @@ const styles = StyleSheet.create({
   },
   dragHandleContainer: {
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs + 2,
   },
   dragHandle: {
     width: 40,
@@ -279,85 +451,198 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md + 2,
+    paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: spacing.sm,
   },
-  title: {
-    fontSize: type.lg,
+  sellerAvatarBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.brandPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: "#10B981",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  headerInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  sellerName: {
+    fontSize: type.sm + 1,
+    fontWeight: "900",
+    color: colors.onSurface,
+  },
+  verifiedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: radius.xs,
+  },
+  verifiedText: {
+    fontSize: 8,
+    fontWeight: "900",
+    color: "#15803D",
+  },
+  subtitle: {
+    fontSize: type.xs - 1,
+    color: colors.onSurfaceSecondary,
+    fontWeight: "600",
+  },
+  headerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs + 2,
+  },
+  callBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#16A34A",
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.sm,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceContainer,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+  },
+  statusBannerText: {
+    fontSize: type.xs - 1,
+    fontWeight: "800",
+    flex: 1,
+  },
+  pinnedOrderCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surfaceContainerLowest,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.xs + 2,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
+  },
+  orderCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs + 2,
+    flex: 1,
+  },
+  orderCardTitle: {
+    fontSize: type.xs,
     fontWeight: "800",
     color: colors.onSurface,
   },
-  subtitle: {
-    fontSize: type.xs,
+  orderCardSubtitle: {
+    fontSize: type.xs - 2,
     color: colors.onSurfaceSecondary,
-    fontWeight: "600",
-    marginTop: 2,
+    marginTop: 1,
   },
-  closeBtn: {
-    padding: spacing.xs,
-    minHeight: touchTarget.minHeight,
-    minWidth: touchTarget.minWidth,
+  completeActionBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 4,
+    backgroundColor: colors.brandPrimary,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  completeActionBtnText: {
+    color: "#FFFFFF",
+    fontSize: type.xs - 2,
+    fontWeight: "800",
   },
   messageList: {
     flex: 1,
   },
   messageListContent: {
-    padding: spacing.lg,
+    padding: spacing.md,
     gap: spacing.sm,
   },
   emptyBox: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: spacing.xxl,
+    padding: spacing.xl,
     gap: spacing.sm,
+    marginTop: spacing.xl,
   },
   emptyText: {
-    fontSize: type.xs,
-    color: colors.muted,
     textAlign: "center",
-    paddingHorizontal: spacing.xl,
+    color: colors.onSurfaceSecondary,
+    fontSize: type.xs,
+    lineHeight: 18,
+    maxWidth: 280,
   },
   messageBubble: {
-    maxWidth: "80%",
-    padding: spacing.md,
+    maxWidth: "82%",
+    padding: spacing.sm + 2,
     borderRadius: radius.md,
-    gap: 3,
+    gap: 4,
   },
   myBubble: {
     alignSelf: "flex-end",
-    backgroundColor: colors.brandTertiary,
-    borderTopRightRadius: radius.xs,
+    backgroundColor: colors.brandPrimary,
+    borderBottomRightRadius: radius.xs,
   },
   theirBubble: {
     alignSelf: "flex-start",
-    backgroundColor: colors.cardBg,
-    borderTopLeftRadius: radius.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainer,
+    borderBottomLeftRadius: radius.xs,
   },
   senderLabel: {
-    fontSize: type.xs - 2,
+    fontSize: 9,
     fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   mySender: {
-    color: colors.onBrandTertiary,
+    color: "rgba(255, 255, 255, 0.75)",
   },
   theirSender: {
-    color: colors.brandPrimary,
+    color: colors.muted,
   },
   messageText: {
     fontSize: type.sm,
-    color: colors.onSurface,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   myText: {
-    color: colors.onBrandTertiary,
+    color: "#FFFFFF",
   },
   theirText: {
     color: colors.onSurface,
@@ -369,37 +654,36 @@ const styles = StyleSheet.create({
   },
   chatAttachmentImage: {
     width: 200,
-    height: 120,
+    height: 140,
     borderRadius: radius.sm,
   },
   chatDocCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.surfaceContainer,
-    padding: spacing.sm,
+    gap: spacing.xs + 2,
+    backgroundColor: "#FFFFFF",
+    padding: spacing.xs + 2,
     borderRadius: radius.xs,
     borderWidth: 1,
     borderColor: colors.border,
   },
   chatDocName: {
     fontSize: type.xs - 1,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.onSurface,
   },
   chatDocType: {
-    fontSize: type.xs - 3,
+    fontSize: 9,
+    fontWeight: "700",
     color: colors.muted,
-    fontWeight: "800",
   },
   timestamp: {
-    fontSize: type.xs - 3,
+    fontSize: 9,
     alignSelf: "flex-end",
     marginTop: 2,
   },
   myTimestamp: {
-    color: colors.onBrandTertiary,
-    opacity: 0.7,
+    color: "rgba(255, 255, 255, 0.65)",
   },
   theirTimestamp: {
     color: colors.muted,
@@ -407,68 +691,64 @@ const styles = StyleSheet.create({
   attachmentDraftBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.surfaceContainerHighest,
+    backgroundColor: "#FEF3C7",
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: "#FDE68A",
+    gap: spacing.sm,
   },
   attachmentDraftName: {
     fontSize: type.xs,
-    fontWeight: "700",
-    color: colors.onSurface,
+    fontWeight: "800",
+    color: "#92400E",
   },
   attachmentDraftSize: {
     fontSize: type.xs - 2,
-    color: colors.muted,
+    color: "#B45309",
   },
   removeDraftBtn: {
-    padding: 4,
+    padding: 2,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.cardBg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    gap: spacing.sm,
+    backgroundColor: colors.surfaceContainerLowest,
+    gap: spacing.xs + 2,
   },
   attachClipBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.pill,
-    backgroundColor: colors.brandTertiary,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.brandPrimaryContainer,
   },
   textInput: {
     flex: 1,
-    minHeight: 42,
-    maxHeight: 100,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor: "#FFFFFF",
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: 8,
     fontSize: type.sm,
     color: colors.onSurface,
+    maxHeight: 100,
     borderWidth: 1,
     borderColor: colors.border,
   },
   sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.brandPrimary,
     alignItems: "center",
     justifyContent: "center",
-    ...shadows.sm,
   },
   sendBtnDisabled: {
-    backgroundColor: colors.muted,
+    opacity: 0.4,
   },
 });

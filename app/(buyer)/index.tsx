@@ -65,6 +65,7 @@ export default function BuyerDashboardScreen() {
   const [selectedMapBooking, setSelectedMapBooking] = useState<Booking | null>(null);
   const [isGuestModalVisible, setIsGuestModalVisible] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
+  const [isOrderingSectionVisible, setIsOrderingSectionVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -231,6 +232,7 @@ export default function BuyerDashboardScreen() {
   };
 
   const scrollToOrderSection = () => {
+    setIsOrderingSectionVisible(true);
     scrollViewRef.current?.scrollTo({ y: 780, animated: true });
   };
 
@@ -430,6 +432,11 @@ export default function BuyerDashboardScreen() {
           { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
+        onScroll={(e) => {
+          const scrollY = e.nativeEvent.contentOffset.y;
+          setIsOrderingSectionVisible(scrollY > 600);
+        }}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -1677,39 +1684,41 @@ export default function BuyerDashboardScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Persistent Sticky Floating Bottom Checkout Bar (Always Visible!) */}
-      <View style={[styles.stickyBottomBar, { paddingBottom: Math.max(12, insets.bottom) }]}>
-        <View style={styles.stickyBarInner}>
-          <View style={styles.stickyPriceGroup}>
-            <Text style={styles.stickyPriceLabel}>Total Amount</Text>
-            <Text style={styles.stickyPriceValue}>{formatIDR(grandTotal)}</Text>
-            <Text style={styles.stickyPriceSub}>{effectiveGrams}g &bull; {deliveryType}</Text>
-          </View>
+      {/* Floating Bottom Checkout Bar - Only shown when user is actively ordering in the catalog section */}
+      {isOrderingSectionVisible && (
+        <View style={[styles.stickyBottomBar, { paddingBottom: Math.max(12, insets.bottom) }]}>
+          <View style={styles.stickyBarInner}>
+            <View style={styles.stickyPriceGroup}>
+              <Text style={styles.stickyPriceLabel}>Total Amount</Text>
+              <Text style={styles.stickyPriceValue}>{formatIDR(grandTotal)}</Text>
+              <Text style={styles.stickyPriceSub}>{effectiveGrams}g &bull; {deliveryType}</Text>
+            </View>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("placeOrder")}
-            accessibilityState={{ disabled: !isStockAvailable || isSubmitting }}
-            style={({ pressed }) => [
-              styles.stickySubmitBtn,
-              !isStockAvailable && styles.submitBtnDisabled,
-              pressed && isStockAvailable && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-            ]}
-            onPress={handleSubmitOrder}
-            disabled={!isStockAvailable || isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color={colors.onBrandPrimary} />
-            ) : (
-              <View style={styles.stickyBtnContent}>
-                <Text style={styles.stickySubmitBtnText}>
-                  {isStockAvailable ? "Order Now →" : "Out of Stock"}
-                </Text>
-              </View>
-            )}
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("placeOrder")}
+              accessibilityState={{ disabled: !isStockAvailable || isSubmitting }}
+              style={({ pressed }) => [
+                styles.stickySubmitBtn,
+                !isStockAvailable && styles.submitBtnDisabled,
+                pressed && isStockAvailable && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handleSubmitOrder}
+              disabled={!isStockAvailable || isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color={colors.onBrandPrimary} />
+              ) : (
+                <View style={styles.stickyBtnContent}>
+                  <Text style={styles.stickySubmitBtnText}>
+                    {isStockAvailable ? "Order Now →" : "Out of Stock"}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Google Maps Transit / COD Meeting Point Inspector Modal */}
       <GoogleDeliveryMapModal

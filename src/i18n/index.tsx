@@ -110,6 +110,26 @@ const translations = {
     clickToExpand: "Tap to expand details",
     clickToCollapse: "Tap to collapse",
 
+    // Pre-Login Routing Popup
+    preLoginWelcome: "Welcome to SaltDistribute",
+    preLoginSubtitle: "Select your portal access or make a quick express purchase",
+    existingMemberTitle: "Existing Member",
+    existingMemberDesc: "Sign in to access your wholesale catalog & order history",
+    sellerAdminTitle: "Seller & Admin",
+    sellerAdminDesc: "Manage inventory, live dispatch, and incoming orders",
+    newCustomerTitle: "New Customer",
+    newCustomerDesc: "Create a verified wholesale buyer account",
+    tempBuyerTitle: "Express Quick Order",
+    tempBuyerDesc: "One-time express purchase with direct live chat dispatch",
+
+    // Rich Chat Statuses & Actions
+    sellerPreparingStatus: "Seller has acknowledged & is preparing dispatch",
+    sellerWaitingStatus: "Waiting for seller response...",
+    orderCompletedArchived: "Order completed & session archived",
+    callSellerWhatsApp: "WhatsApp Call",
+    markOrderCompleted: "Mark Order as Completed",
+    orderSummaryCardTitle: "Attached Order Details",
+
     // Penjual UI
     PenjualDashboard: "Penjual Executive Dashboard",
     adminDashboard: "Penjual Executive Dashboard",
@@ -443,6 +463,26 @@ const translations = {
     recentOrderUpdates: "Pembaruan Pesanan Terkini",
     clickToExpand: "Ketuk untuk lihat detail",
     clickToCollapse: "Ketuk untuk tutup",
+
+    // Pre-Login Routing Popup
+    preLoginWelcome: "Selamat Datang di SaltDistribute",
+    preLoginSubtitle: "Pilih akses portal Anda atau lakukan pembelian cepat tanpa akun",
+    existingMemberTitle: "Member Terdaftar",
+    existingMemberDesc: "Masuk ke akun untuk akses katalog grosir & riwayat pesanan",
+    sellerAdminTitle: "Penjual & Admin",
+    sellerAdminDesc: "Kelola stok, pantau pengiriman live, & verifikasi pesanan",
+    newCustomerTitle: "Daftar Akun Baru",
+    newCustomerDesc: "Buat akun pembeli grosir terverifikasi baru",
+    tempBuyerTitle: "Pembelian Cepat (Tanpa Akun)",
+    tempBuyerDesc: "Pesan langsung 1x transaksi dengan chat penjual instan",
+
+    // Rich Chat Statuses & Actions
+    sellerPreparingStatus: "Penjual telah merespons & sedang menyiapkan pengiriman",
+    sellerWaitingStatus: "Menunggu respon penjual...",
+    orderCompletedArchived: "Pesanan telah selesai & sesi diarsipkan",
+    callSellerWhatsApp: "Panggilan WhatsApp",
+    markOrderCompleted: "Tandai Pesanan Selesai",
+    orderSummaryCardTitle: "Rincian Pesanan Terlampir",
 
     // Penjual UI
     PenjualDashboard: "Dashboard Eksekutif Penjual",
