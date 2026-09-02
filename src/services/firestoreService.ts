@@ -3,10 +3,13 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
+  writeBatch,
   getDoc,
   getDocs,
   onSnapshot,
   query,
+  where,
   orderBy,
   serverTimestamp,
   Unsubscribe,
@@ -22,6 +25,7 @@ const MEETING_POINTS_DOC = doc(db, "meeting_points", "points");
 const RESTOCK_LOGS_DOC = doc(db, "inventory", "restock_logs");
 const BOOKINGS_COLLECTION = collection(db, "bookings");
 const USERS_COLLECTION = collection(db, "users");
+const NOTIFICATIONS_COLLECTION = collection(db, "notifications");
 
 /**
  * Real-time Subscription to Warehouse Inventory
@@ -65,11 +69,13 @@ export async function fetchInventoryFromFirestore(): Promise<Inventory | null> {
  */
 export async function syncInventoryToFirestore(inventory: Inventory): Promise<void> {
   try {
+    const cleanInv = sanitizeFirestoreData(inventory);
     await setDoc(INVENTORY_DOC, {
-      ...inventory,
+      ...cleanInv,
       updatedAt: new Date().toISOString(),
       _serverUpdatedAt: serverTimestamp(),
     }, { merge: true });
+    console.log("[Firestore] Inventory synced successfully");
   } catch (error) {
     console.warn("[Firestore] Failed to sync inventory:", error);
     throw error;
@@ -118,8 +124,9 @@ export async function fetchStoreSettingsFromFirestore(): Promise<StoreSettings |
  */
 export async function syncStoreSettingsToFirestore(settings: StoreSettings): Promise<void> {
   try {
+    const cleanSettings = sanitizeFirestoreData(settings);
     await setDoc(SETTINGS_DOC, {
-      ...settings,
+      ...cleanSettings,
       updatedAt: new Date().toISOString(),
       _serverUpdatedAt: serverTimestamp(),
     }, { merge: true });
@@ -141,8 +148,9 @@ export function subscribeToMeetingPoints(
     (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        if (data && Array.isArray(data.items)) {
-          onData(data.items as MeetingPoint[]);
+        const pts = (data && (Array.isArray(data.points) ? data.points : Array.isArray(data.items) ? data.items : null)) as MeetingPoint[] | null;
+        if (pts && pts.length > 0) {
+          onData(pts);
         }
       }
     },
@@ -161,8 +169,9 @@ export async function fetchMeetingPointsFromFirestore(): Promise<MeetingPoint[] 
     const snap = await getDoc(MEETING_POINTS_DOC);
     if (snap.exists()) {
       const data = snap.data();
-      if (data && Array.isArray(data.items)) {
-        return data.items as MeetingPoint[];
+      const pts = (data && (Array.isArray(data.points) ? data.points : Array.isArray(data.items) ? data.items : null)) as MeetingPoint[] | null;
+      if (pts && pts.length > 0) {
+        return pts;
       }
     }
     return null;
@@ -177,8 +186,9 @@ export async function fetchMeetingPointsFromFirestore(): Promise<MeetingPoint[] 
  */
 export async function syncMeetingPointsToFirestore(items: MeetingPoint[]): Promise<void> {
   try {
+    const cleanItems = sanitizeFirestoreData({ items, points: items });
     await setDoc(MEETING_POINTS_DOC, {
-      items,
+      ...cleanItems,
       updatedAt: new Date().toISOString(),
       _serverUpdatedAt: serverTimestamp(),
     }, { merge: true });
@@ -236,8 +246,9 @@ export async function fetchRestockLogsFromFirestore(): Promise<RestockLog[] | nu
  */
 export async function syncRestockLogsToFirestore(items: RestockLog[]): Promise<void> {
   try {
+    const cleanLogs = sanitizeFirestoreData({ items });
     await setDoc(RESTOCK_LOGS_DOC, {
-      items,
+      ...cleanLogs,
       updatedAt: new Date().toISOString(),
       _serverUpdatedAt: serverTimestamp(),
     }, { merge: true });
@@ -296,18 +307,38 @@ export async function fetchBookingsFromFirestore(): Promise<Booking[] | null> {
 }
 
 /**
+ * Recursively removes undefined keys to prevent Firestore write rejection
+ */
+export function sanitizeFirestoreData<T extends Record<string, any>>(data: T): Record<string, any> {
+  const clean: Record<string, any> = {};
+  Object.keys(data).forEach((key) => {
+    const val = data[key];
+    if (val !== undefined) {
+      if (val !== null && typeof val === "object" && !Array.isArray(val) && !(val instanceof Date)) {
+        clean[key] = sanitizeFirestoreData(val);
+      } else {
+        clean[key] = val;
+      }
+    }
+  });
+  return clean;
+}
+
+/**
  * Create or Upsert Booking in Firestore
  */
 export async function saveBookingToFirestore(booking: Booking): Promise<void> {
   try {
+    const cleanBooking = sanitizeFirestoreData(booking);
     const bookingDocRef = doc(db, "bookings", booking.bookingId);
     await setDoc(bookingDocRef, {
-      ...booking,
+      ...cleanBooking,
       _serverCreatedAt: serverTimestamp(),
       _serverUpdatedAt: serverTimestamp(),
     }, { merge: true });
+    console.log(`[Firestore] Booking ${booking.bookingId} saved successfully to Cloud Firestore!`);
   } catch (error) {
-    console.warn("[Firestore] Failed to save booking:", error);
+    console.error("[Firestore] Failed to save booking:", error);
     throw error;
   }
 }
@@ -320,13 +351,15 @@ export async function updateBookingInFirestore(
   updates: Partial<Booking>
 ): Promise<void> {
   try {
+    const cleanUpdates = sanitizeFirestoreData(updates);
     const bookingDocRef = doc(db, "bookings", bookingId);
     await updateDoc(bookingDocRef, {
-      ...updates,
+      ...cleanUpdates,
       _serverUpdatedAt: serverTimestamp(),
     });
+    console.log(`[Firestore] Booking ${bookingId} updated successfully in Cloud Firestore!`);
   } catch (error) {
-    console.warn("[Firestore] Failed to update booking:", error);
+    console.error("[Firestore] Failed to update booking:", error);
     throw error;
   }
 }
@@ -384,9 +417,10 @@ export async function fetchUsersFromFirestore(): Promise<User[] | null> {
  */
 export async function syncUserToFirestore(user: User): Promise<void> {
   try {
+    const cleanUser = sanitizeFirestoreData(user);
     const userDocRef = doc(db, "users", user.userId);
     await setDoc(userDocRef, {
-      ...user,
+      ...cleanUser,
       _serverUpdatedAt: serverTimestamp(),
     }, { merge: true });
   } catch (error) {
@@ -424,21 +458,92 @@ export function subscribeToChatMessages(
 }
 
 /**
- * Send Chat Message to Firestore
+ * Send Chat Message to Firestore with 30-day Retention TTL
  */
 export async function sendChatMessageToFirestore(
   bookingId: string,
   message: ChatMessage
 ): Promise<void> {
   try {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const expireAt = new Date(Date.now() + THIRTY_DAYS_MS).toISOString();
+    const cleanMsg = sanitizeFirestoreData(message);
     const messageDocRef = doc(db, "chats", bookingId, "messages", message.id);
     await setDoc(messageDocRef, {
-      ...message,
+      ...cleanMsg,
+      expireAt,
       _serverTimestamp: serverTimestamp(),
     });
+    console.log(`[Firestore] Chat message ${message.id} saved successfully!`);
   } catch (error) {
-    console.warn("[Firestore] Failed to send chat message:", error);
+    console.error("[Firestore] Failed to send chat message:", error);
     throw error;
+  }
+}
+
+/**
+ * Auto-delete / Purge Expired Notifications from Firestore (> 24 hours)
+ */
+export async function purgeExpiredNotificationsFromFirestore(maxAgeHours: number = 24): Promise<number> {
+  try {
+    const cutoffTimestamp = Date.now() - maxAgeHours * 60 * 60 * 1000;
+    const q = query(NOTIFICATIONS_COLLECTION, where("timestamp", "<", cutoffTimestamp));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) return 0;
+
+    const batch = writeBatch(db);
+    let count = 0;
+    snapshot.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+      count++;
+    });
+
+    await batch.commit();
+    console.log(`[Auto-Purge] Cleaned up ${count} expired notifications (> 24h).`);
+    return count;
+  } catch (error) {
+    console.warn("[Auto-Purge] Error purging expired notifications:", error);
+    return 0;
+  }
+}
+
+/**
+ * Auto-delete / Purge Expired Chat Messages from Firestore (> 30 days)
+ */
+export async function purgeExpiredChatsFromFirestore(bookingIds: string[], maxAgeDays: number = 30): Promise<number> {
+  try {
+    const cutoffTimestamp = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+    let totalDeleted = 0;
+
+    for (const bookingId of bookingIds) {
+      const messagesCol = collection(db, "chats", bookingId, "messages");
+      const snapshot = await getDocs(messagesCol);
+
+      const toDeleteDocs: any[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const msgTime = data.timestamp ? new Date(data.timestamp).getTime() : 0;
+        if (msgTime > 0 && msgTime < cutoffTimestamp) {
+          toDeleteDocs.push(docSnap.ref);
+        }
+      });
+
+      if (toDeleteDocs.length > 0) {
+        const batch = writeBatch(db);
+        toDeleteDocs.forEach((ref) => batch.delete(ref));
+        await batch.commit();
+        totalDeleted += toDeleteDocs.length;
+      }
+    }
+
+    if (totalDeleted > 0) {
+      console.log(`[Auto-Purge] Cleaned up ${totalDeleted} expired chat messages (> 30 days).`);
+    }
+    return totalDeleted;
+  } catch (error) {
+    console.warn("[Auto-Purge] Error purging expired chats:", error);
+    return 0;
   }
 }
 

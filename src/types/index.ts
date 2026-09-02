@@ -142,9 +142,18 @@ export interface Booking {
   // Guest & Ephemeral Lifecycle Properties
   isGuest?: boolean;
   isTemporary?: boolean;
+  isQuickOrder?: boolean;
+  orderType?: "QUICK_ORDER" | "STANDARD_MEMBER_ORDER";
   purchaseMode?: PurchaseMode;
   targetAmountIdr?: number;
   guestAccessKey?: string;
+  // Agent Detail Edit Fields (aligned with form mockup)
+  subject?: string;
+  residenceUnit?: string;
+  issueCategory?: string;
+  isUrgent?: boolean;
+  accessNotes?: string;
+  photos?: string[];
   dataPurgeStatus?: "ACTIVE" | "PURGED";
   purgedAt?: string;
 }

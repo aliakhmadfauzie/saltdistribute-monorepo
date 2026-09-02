@@ -1,9 +1,11 @@
 // SaltDistribute - Firebase SDK Configuration & Services
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getMessaging, isSupported, getToken, onMessage, Messaging } from "firebase/messaging";
+import { getAnalytics, isSupported as isAnalyticsSupported, Analytics } from "firebase/analytics";
+import { getMessaging, isSupported as isMessagingSupported, getToken, onMessage, Messaging } from "firebase/messaging";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider, AppCheck } from "firebase/app-check";
 import { Platform } from "react-native";
 
 // Web app Firebase configuration
@@ -14,6 +16,7 @@ export const firebaseConfig = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "saltdistribute-2026.firebasestorage.app",
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "307526299576",
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:307526299576:web:d5cf416af5f366fd87a94d",
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-Q67D1MSDZF",
 };
 
 // Web Push VAPID Key for Firebase Cloud Messaging
@@ -26,8 +29,38 @@ export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getA
 
 // Firebase Core Services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      ignoreUndefinedProperties: true,
+    });
+  } catch (e) {
+    return getFirestore(app);
+  }
+})();
 export const storage = getStorage(app);
+
+// Firebase Analytics (Web / PWA)
+let analyticsInstance: Analytics | null = null;
+
+/**
+ * Initialize and get Firebase Analytics safely (Web-only)
+ */
+export async function getFirebaseAnalytics(): Promise<Analytics | null> {
+  if (Platform.OS !== "web" || typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const supported = await isAnalyticsSupported();
+    if (supported && !analyticsInstance) {
+      analyticsInstance = getAnalytics(app);
+    }
+    return analyticsInstance;
+  } catch (error) {
+    console.warn("[Analytics] Firebase Analytics is not supported in this environment:", error);
+    return null;
+  }
+}
 
 // Firebase Cloud Messaging (Web / PWA)
 let messagingInstance: Messaging | null = null;
@@ -40,7 +73,7 @@ export async function getFirebaseMessaging(): Promise<Messaging | null> {
     return null;
   }
   try {
-    const supported = await isSupported();
+    const supported = await isMessagingSupported();
     if (supported && !messagingInstance) {
       messagingInstance = getMessaging(app);
     }
@@ -92,6 +125,52 @@ export function onMessageListener(callback: (payload: any) => void) {
       });
     }
   });
+}
+
+// Firebase App Check with reCAPTCHA Enterprise
+let appCheckInstance: AppCheck | null = null;
+
+/**
+ * Initialize Firebase App Check (reCAPTCHA Enterprise)
+ */
+export function initAppCheck(): AppCheck | null {
+  if (Platform.OS !== "web" || typeof window === "undefined") {
+    return null;
+  }
+  const siteKey =
+    process.env.EXPO_PUBLIC_RECAPTCHA_ENTERPRISE_KEY ||
+    process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY;
+
+  if (!siteKey) {
+    return null;
+  }
+
+  try {
+    if (!appCheckInstance) {
+      // In development / local testing, allow debug token
+      if (process.env.NODE_ENV !== "production" || window.location?.hostname === "localhost") {
+        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
+      appCheckInstance = initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider(siteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+      console.log("[AppCheck] Firebase App Check initialized successfully with reCAPTCHA Enterprise");
+    }
+    return appCheckInstance;
+  } catch (error) {
+    console.warn("[AppCheck] App Check initialization note:", error);
+    return null;
+  }
+}
+
+// Auto-initialize App Check if site key is configured
+if (Platform.OS === "web") {
+  try {
+    initAppCheck();
+  } catch (e) {
+    // Graceful fallback
+  }
 }
 
 export default app;

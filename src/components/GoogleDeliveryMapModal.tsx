@@ -129,19 +129,19 @@ export default function GoogleDeliveryMapModal({
                   color={colors.onBrandPrimary}
                 />
                 <Text style={styles.gmapBadgeText}>
-                  {isCOD ? "VERIFIED COD MEETING POINT" : "OPENSTREETMAP TRANSIT ROUTE"}
+                  {isCOD ? "TITIK TEMU COD TERVERIFIKASI" : "RUTE PENGANTARAN LIVE"}
                 </Text>
               </View>
               <Text style={styles.title}>
-                {isCOD ? routeInfo.name : "Estimated Delivery Route"}
+                {isCOD ? routeInfo.name : "Estimasi Rute Pengantaran"}
               </Text>
               <Text style={styles.subtitle}>
-                Hub &rarr; {routeInfo.address}
+                Pangkalan &rarr; {routeInfo.address}
               </Text>
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close delivery map modal"
+              accessibilityLabel="Tutup peta rute"
               style={styles.closeBtn}
               onPress={onClose}
             >
@@ -162,7 +162,7 @@ export default function GoogleDeliveryMapModal({
                 color={mapType === "roadmap" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
               <Text style={[styles.layerChipText, mapType === "roadmap" && styles.layerChipTextActive]}>
-                Roadmap
+                Peta Jalan
               </Text>
             </Pressable>
 
@@ -177,13 +177,13 @@ export default function GoogleDeliveryMapModal({
                 color={mapType === "satellite" ? colors.onBrandPrimary : colors.onSurfaceSecondary}
               />
               <Text style={[styles.layerChipText, mapType === "satellite" && styles.layerChipTextActive]}>
-                Satellite
+                Satelit
               </Text>
             </Pressable>
 
             <View style={styles.etaChip}>
               <MaterialCommunityIcons name="clock-fast" size={14} color={colors.brandPrimary} />
-              <Text style={styles.etaChipText}>~{routeInfo.estimatedMinutes} mins transit</Text>
+              <Text style={styles.etaChipText}>~{routeInfo.estimatedMinutes} mnt pengantaran</Text>
             </View>
           </View>
 
@@ -191,7 +191,7 @@ export default function GoogleDeliveryMapModal({
           <View style={styles.mapFrame}>
             {Platform.OS === "web" ? (
               <iframe
-                title="Google Maps Delivery Preview"
+                title="Pratinjau Peta Pengiriman"
                 srcDoc={mapHtml}
                 style={{ width: "100%", height: "100%", border: 0 }}
               />
@@ -225,7 +225,7 @@ export default function GoogleDeliveryMapModal({
                 color={isCOD ? colors.warning : colors.error}
               />
               <View style={styles.locTextGroup}>
-                <Text style={styles.locLabel}>{isCOD ? "Secure Meeting Point" : "Delivery Destination"}</Text>
+                <Text style={styles.locLabel}>{isCOD ? "Titik Temu COD Aman" : "Alamat Tujuan Pengiriman"}</Text>
                 <Text style={styles.locValue}>{routeInfo.address}</Text>
                 {routeInfo.securityNote ? (
                   <Text style={styles.securitySub}>🛡️ {routeInfo.securityNote} &bull; {routeInfo.operatingHours}</Text>
@@ -235,17 +235,17 @@ export default function GoogleDeliveryMapModal({
 
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Distance</Text>
+                <Text style={styles.statLabel}>Jarak Tempuh</Text>
                 <Text style={styles.statValue}>{routeInfo.distanceKm} km</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>ETA / Duration</Text>
-                <Text style={styles.statValue}>~{routeInfo.estimatedMinutes} mins</Text>
+                <Text style={styles.statLabel}>Estimasi Waktu</Text>
+                <Text style={styles.statValue}>~{routeInfo.estimatedMinutes} mnt</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>Freight Fee</Text>
+                <Text style={styles.statLabel}>Ongkos Kirim</Text>
                 <Text style={styles.statValue}>
-                  {isCOD ? "FREE (COD)" : formatIDR(resolvedDeliveryFee)}
+                  {isCOD ? "GRATIS (COD)" : formatIDR(resolvedDeliveryFee)}
                 </Text>
               </View>
             </View>
@@ -255,22 +255,22 @@ export default function GoogleDeliveryMapModal({
           <View style={styles.actionRow}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open live navigation in Google Maps"
+              accessibilityLabel="Buka navigasi di Google Maps"
               style={({ pressed }) => [styles.navBtn, styles.googleMapsBtn, pressed && { opacity: 0.9 }]}
               onPress={handleOpenGoogleMaps}
             >
               <MaterialCommunityIcons name="google-maps" size={20} color={colors.onBrandPrimary} />
-              <Text style={styles.navBtnText}>Open in Google Maps</Text>
+              <Text style={styles.navBtnText}>Buka di Google Maps</Text>
             </Pressable>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open in Waze Navigation"
+              accessibilityLabel="Buka navigasi di Waze"
               style={({ pressed }) => [styles.navBtn, styles.wazeBtn, pressed && { opacity: 0.9 }]}
               onPress={handleOpenWaze}
             >
               <MaterialCommunityIcons name="waze" size={20} color={colors.onBrandPrimary} />
-              <Text style={styles.navBtnText}>Open in Waze</Text>
+              <Text style={styles.navBtnText}>Buka di Waze</Text>
             </Pressable>
           </View>
         </View>

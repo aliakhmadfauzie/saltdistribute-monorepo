@@ -36,62 +36,41 @@ export default function PreLoginRoutingModal({
   const { width: windowWidth } = useWindowDimensions();
   const isSmall = windowWidth < 380;
 
-  // Animation values for flash and scale entrance/exit
-  const animScale = useRef(new Animated.Value(0.85)).current;
+  // Animation values for scale & opacity entrance/exit
+  const animScale = useRef(new Animated.Value(0.9)).current;
   const animOpacity = useRef(new Animated.Value(0)).current;
-  const flashOverlay = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      // Entrance flash + scale spring
       Animated.parallel([
         Animated.spring(animScale, {
           toValue: 1,
-          friction: 6,
-          tension: 65,
+          friction: 7,
+          tension: 70,
           useNativeDriver: true,
         }),
         Animated.timing(animOpacity, {
           toValue: 1,
-          duration: 250,
+          duration: 200,
           useNativeDriver: true,
         }),
-        Animated.sequence([
-          Animated.timing(flashOverlay, {
-            toValue: 0.6,
-            duration: 120,
-            useNativeDriver: true,
-          }),
-          Animated.timing(flashOverlay, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]),
       ]).start();
     } else {
-      animScale.setValue(0.85);
+      animScale.setValue(0.9);
       animOpacity.setValue(0);
-      flashOverlay.setValue(0);
     }
   }, [visible]);
 
   const handleTriggerAction = (callback: () => void) => {
-    // Flash exit transition
     Animated.parallel([
-      Animated.timing(flashOverlay, {
-        toValue: 0.8,
-        duration: 100,
-        useNativeDriver: true,
-      }),
       Animated.timing(animScale, {
         toValue: 0.95,
-        duration: 150,
+        duration: 120,
         useNativeDriver: true,
       }),
       Animated.timing(animOpacity, {
         toValue: 0,
-        duration: 150,
+        duration: 120,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -110,17 +89,6 @@ export default function PreLoginRoutingModal({
       onRequestClose={onClose}
     >
       <View style={styles.backdropOverlay}>
-        {/* White Flash Effect Layer */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.flashLayer,
-            {
-              opacity: flashOverlay,
-            },
-          ]}
-        />
-
         {/* Backdrop Dismiss Area */}
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -142,24 +110,26 @@ export default function PreLoginRoutingModal({
           {/* Header with App Logo & Title */}
           <View style={styles.cardHeader}>
             <View style={styles.headerBrandRow}>
-              <AppLogo variant="horizontal" size="sm" theme="light" />
+              <AppLogo variant="compact" size="sm" theme="emerald" />
               <Pressable
-                style={styles.closeBtn}
+                style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
                 onPress={onClose}
                 accessibilityRole="button"
-                accessibilityLabel="Tutup"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Tutup modal"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <Ionicons name="close" size={20} color={colors.onSurfaceSecondary} />
               </Pressable>
             </View>
 
-            <Text style={[styles.modalTitle, isSmall && { fontSize: type.md }]}>
-              {t("preLoginWelcome")}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              {t("preLoginSubtitle")}
-            </Text>
+            <View style={styles.titleContainer}>
+              <Text style={[styles.modalTitle, isSmall && { fontSize: type.md + 1 }]}>
+                {t("preLoginWelcome")}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {t("preLoginSubtitle")}
+              </Text>
+            </View>
           </View>
 
           {/* 4 User Routing Options List */}
@@ -168,8 +138,10 @@ export default function PreLoginRoutingModal({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Masuk sebagai Member Terdaftar"
+              accessibilityHint="Isi kredensial akun pembeli atau tenant terdaftar"
               style={({ pressed }) => [
                 styles.optionCard,
+                styles.optionCardMember,
                 pressed && styles.optionCardPressed,
               ]}
               onPress={() => handleTriggerAction(onSelectExistingMember)}
@@ -184,22 +156,24 @@ export default function PreLoginRoutingModal({
                 <View style={styles.optionTitleRow}>
                   <Text style={styles.optionTitle}>{t("existingMemberTitle")}</Text>
                   <View style={styles.popularBadge}>
-                    <Text style={styles.popularBadgeText}>MEMBER</Text>
+                    <Text style={styles.popularBadgeText}>PEMBELI</Text>
                   </View>
                 </View>
                 <Text style={styles.optionDesc} numberOfLines={2}>
                   {t("existingMemberDesc")}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.onSurfaceSecondary} />
+              <Ionicons name="chevron-forward" size={18} color={colors.brandPrimary} />
             </Pressable>
 
             {/* 2. Sellers & Admin */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Masuk sebagai Penjual atau Admin"
+              accessibilityHint="Masuk ke portal operasional manajemen dan distribusi garam"
               style={({ pressed }) => [
                 styles.optionCard,
+                styles.optionCardSeller,
                 pressed && styles.optionCardPressed,
               ]}
               onPress={() => handleTriggerAction(onSelectSeller)}
@@ -211,20 +185,27 @@ export default function PreLoginRoutingModal({
                 <MaterialCommunityIcons name="shield-account" size={22} color="#FFFFFF" />
               </LinearGradient>
               <View style={styles.optionContent}>
-                <Text style={styles.optionTitle}>{t("sellerAdminTitle")}</Text>
+                <View style={styles.optionTitleRow}>
+                  <Text style={styles.optionTitle}>{t("sellerAdminTitle")}</Text>
+                  <View style={styles.sellerBadge}>
+                    <Text style={styles.sellerBadgeText}>OFFICIAL</Text>
+                  </View>
+                </View>
                 <Text style={styles.optionDesc} numberOfLines={2}>
                   {t("sellerAdminDesc")}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.onSurfaceSecondary} />
+              <Ionicons name="chevron-forward" size={18} color="#1E293B" />
             </Pressable>
 
             {/* 3. New Customers (Registration) */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Daftar Akun Baru"
+              accessibilityHint="Buka form pendaftaran tenant atau pembeli baru"
               style={({ pressed }) => [
                 styles.optionCard,
+                styles.optionCardNew,
                 pressed && styles.optionCardPressed,
               ]}
               onPress={() => handleTriggerAction(onSelectNewCustomer)}
@@ -236,18 +217,24 @@ export default function PreLoginRoutingModal({
                 <MaterialCommunityIcons name="account-plus" size={22} color="#FFFFFF" />
               </LinearGradient>
               <View style={styles.optionContent}>
-                <Text style={styles.optionTitle}>{t("newCustomerTitle")}</Text>
+                <View style={styles.optionTitleRow}>
+                  <Text style={styles.optionTitle}>{t("newCustomerTitle")}</Text>
+                  <View style={styles.registerBadge}>
+                    <Text style={styles.registerBadgeText}>DAFTAR</Text>
+                  </View>
+                </View>
                 <Text style={styles.optionDesc} numberOfLines={2}>
                   {t("newCustomerDesc")}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.onSurfaceSecondary} />
+              <Ionicons name="chevron-forward" size={18} color="#0284C7" />
             </Pressable>
 
             {/* 4. Temporary Buyers (Quick Express Order) */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Pembelian Cepat Tanpa Akun (Guest Order)"
+              accessibilityHint="Pesan garam instan langsung dengan formulir cepat tanpa login"
               style={({ pressed }) => [
                 styles.optionCard,
                 styles.optionCardHighlight,
@@ -259,16 +246,18 @@ export default function PreLoginRoutingModal({
                 colors={["#D97706", "#B45309"]}
                 style={styles.optionIconBox}
               >
-                <MaterialCommunityIcons name="flash-outline" size={22} color="#FFFFFF" />
+                <MaterialCommunityIcons name="lightning-bolt" size={22} color="#FFFFFF" />
               </LinearGradient>
               <View style={styles.optionContent}>
                 <View style={styles.optionTitleRow}>
-                  <Text style={styles.optionTitle}>{t("tempBuyerTitle")}</Text>
+                  <Text style={[styles.optionTitle, { color: "#92400E" }]}>
+                    {t("tempBuyerTitle")}
+                  </Text>
                   <View style={styles.expressBadge}>
-                    <Text style={styles.expressBadgeText}>1-TAP CHAT</Text>
+                    <Text style={styles.expressBadgeText}>INSTAN</Text>
                   </View>
                 </View>
-                <Text style={styles.optionDesc} numberOfLines={2}>
+                <Text style={[styles.optionDesc, { color: "#B45309" }]} numberOfLines={2}>
                   {t("tempBuyerDesc")}
                 </Text>
               </View>
@@ -284,33 +273,27 @@ export default function PreLoginRoutingModal({
 const styles = StyleSheet.create({
   backdropOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.68)",
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
     justifyContent: "center",
     alignItems: "center",
     padding: spacing.md,
     ...(Platform.OS === "web"
       ? {
-          // Web blur filter
           backdropFilter: "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
         }
       : {}),
   },
-  flashLayer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#FFFFFF",
-    zIndex: 10,
-  },
   centeredCard: {
     width: "100%",
-    maxWidth: 440,
-    backgroundColor: "#FFFFFF",
-    borderRadius: radius.xl,
+    maxWidth: 460,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl + 4,
     padding: spacing.lg,
     gap: spacing.md,
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-    ...shadows.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.lg,
     zIndex: 20,
   },
   cardHeader: {
@@ -323,21 +306,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: touchTarget.minWidth - 8,
+    height: touchTarget.minHeight - 8,
+    borderRadius: radius.pill,
     backgroundColor: colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
+  titleContainer: {
+    gap: 2,
+  },
   modalTitle: {
-    fontSize: type.lg,
+    fontSize: type.lg + 1,
     fontWeight: "900",
     color: colors.onSurface,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   modalSubtitle: {
-    fontSize: type.xs,
+    fontSize: type.xs + 1,
     color: colors.onSurfaceSecondary,
     lineHeight: 18,
   },
@@ -348,24 +334,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm + 2,
-    backgroundColor: "#FFFFFF",
-    padding: spacing.sm + 4,
+    backgroundColor: colors.surfaceContainerLowest,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    minHeight: touchTarget.minHeight + 8,
     borderRadius: radius.lg,
     borderWidth: 1.5,
     borderColor: colors.border,
     ...shadows.sm,
+  },
+  optionCardMember: {
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F8FAF8",
+  },
+  optionCardSeller: {
+    borderColor: "#CBD5E1",
+    backgroundColor: "#F8FAFC",
+  },
+  optionCardNew: {
+    borderColor: "#BAE6FD",
+    backgroundColor: "#F0F9FF",
   },
   optionCardHighlight: {
     borderColor: "#FDE68A",
     backgroundColor: "#FFFBEB",
   },
   optionCardPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }],
   },
   optionIconBox: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
@@ -382,35 +382,61 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   optionTitle: {
-    fontSize: type.sm,
+    fontSize: type.sm + 1,
     fontWeight: "800",
     color: colors.onSurface,
   },
   optionDesc: {
-    fontSize: type.xs - 2,
+    fontSize: type.xs - 1,
     color: colors.onSurfaceSecondary,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   popularBadge: {
     backgroundColor: "#DCFCE7",
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 1,
     borderRadius: radius.xs,
   },
   popularBadgeText: {
     fontSize: 9,
     fontWeight: "800",
     color: "#15803D",
+    letterSpacing: 0.3,
+  },
+  sellerBadge: {
+    backgroundColor: "#E2E8F0",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.xs,
+  },
+  sellerBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#334155",
+    letterSpacing: 0.3,
+  },
+  registerBadge: {
+    backgroundColor: "#E0F2FE",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.xs,
+  },
+  registerBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#0284C7",
+    letterSpacing: 0.3,
   },
   expressBadge: {
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 1,
     borderRadius: radius.xs,
   },
   expressBadgeText: {
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "900",
     color: "#B45309",
+    letterSpacing: 0.3,
   },
 });

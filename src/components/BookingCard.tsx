@@ -4,16 +4,18 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Booking, BookingStatus } from "../types";
 import { formatIDR } from "../api";
 import { useI18n } from "../i18n";
-import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
+import { colors, radius, spacing, type, shadows, touchTarget, glass } from "../theme";
 import WhatsAppButton from "./WhatsAppButton";
 import GoogleDeliveryMapModal from "./GoogleDeliveryMapModal";
 import AdminLiveRadarModal from "./AdminLiveRadarModal";
+import InteractivePressable from "./InteractivePressable";
 
 interface BookingCardProps {
   booking: Booking;
   isAdmin?: boolean;
   onOpenUpload?: (booking: Booking) => void;
   onOpenChat?: (booking: Booking) => void;
+  onOpenEdit?: (booking: Booking) => void;
   onAccept?: (bookingId: string) => void;
   onReject?: (bookingId: string) => void;
   onVerifyPayment?: (bookingId: string) => void;
@@ -25,6 +27,7 @@ export default function BookingCard({
   isAdmin = false,
   onOpenUpload,
   onOpenChat,
+  onOpenEdit,
   onAccept,
   onReject,
   onVerifyPayment,
@@ -129,7 +132,7 @@ export default function BookingCard({
               size={16}
               color={isCopied ? colors.success : colors.muted}
             />
-            {isCopied ? <Text style={styles.copiedBadge}>Copied</Text> : null}
+            {isCopied ? <Text style={styles.copiedBadge}>Tersalin</Text> : null}
           </View>
           <Text style={styles.createdDate}>
             {new Date(booking.createdAt).toLocaleDateString([], {
@@ -165,7 +168,7 @@ export default function BookingCard({
           <View style={{ flex: 1 }}>
             <Text style={styles.packageText}>{booking.packageLabel}</Text>
             <Text style={styles.quantitySub}>
-              {booking.quantityGram} grams ({booking.quantityGram / 1000} kg) NaCl 99.2% Pure
+              {booking.quantityGram} gram ({booking.quantityGram / 1000} kg) NaCl 99.2% Murni
             </Text>
           </View>
         </View>
@@ -179,14 +182,14 @@ export default function BookingCard({
           <Text style={styles.deliveryText}>
             {booking.deliveryType === "COD"
               ? t("selfPickupCOD")
-              : `${t("dispatchDelivery")} (${booking.deliveryZone || "Standard"})`}
+              : `${t("dispatchDelivery")} (${booking.deliveryZone || "Standar"})`}
           </Text>
         </View>
 
         {/* Google Maps Route / COD Meeting Point Inspector Button */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Inspect Delivery Route or COD Meeting Point on Google Maps"
+          accessibilityLabel="Lihat Rute Pengantaran atau Titik Temu COD"
           style={styles.mapRouteBtn}
           onPress={() => setIsMapModalVisible(true)}
         >
@@ -197,7 +200,7 @@ export default function BookingCard({
           />
           <Text style={styles.mapRouteBtnText}>
             {booking.deliveryType === "COD"
-              ? `${t("viewCodMeetingPoint")} (${booking.meetingPointName || "Belawan Hub"})`
+              ? `${t("viewCodMeetingPoint")} (${booking.meetingPointName || "Hub Belawan"})`
               : isAdmin
               ? t("viewDispatchRoute")
               : t("trackDeliveryRoute")}
@@ -328,7 +331,7 @@ export default function BookingCard({
           ) : (
             <View style={styles.docFilePill}>
               <MaterialCommunityIcons name="file-pdf-box" size={24} color="#DC2626" />
-              <Text style={styles.docFilePillText}>{booking.attachedDocumentName || "Document.pdf"}</Text>
+              <Text style={styles.docFilePillText}>{booking.attachedDocumentName || "Dokumen.pdf"}</Text>
             </View>
           )}
         </View>
@@ -349,18 +352,30 @@ export default function BookingCard({
 
       {/* Action Buttons with 48dp touch target and responsive flex rows */}
       <View style={styles.actionsContainer}>
-        {/* Row 1: Quick Chat & WhatsApp Communications */}
+        {/* Row 1: Quick Chat, Edit Form & WhatsApp Communications */}
         <View style={styles.commActionsRow}>
-          {onOpenChat ? (
-            <Pressable
+          {isAdmin && onOpenEdit ? (
+            <InteractivePressable
               accessibilityRole="button"
-              accessibilityLabel="Open order discussion"
-              style={({ pressed }) => [styles.actionBtn, styles.chatBtn, pressed && { opacity: 0.85 }]}
+              accessibilityLabel="Ubah Rincian Formulir Pesanan"
+              style={[styles.actionBtn, styles.editBtn]}
+              onPress={() => onOpenEdit(booking)}
+            >
+              <MaterialCommunityIcons name="file-document-edit-outline" size={17} color="#0F3D5E" />
+              <Text style={styles.editBtnText}>Ubah Form</Text>
+            </InteractivePressable>
+          ) : null}
+
+          {onOpenChat ? (
+            <InteractivePressable
+              accessibilityRole="button"
+              accessibilityLabel="Buka percakapan pesanan"
+              style={[styles.actionBtn, styles.chatBtn]}
               onPress={() => onOpenChat(booking)}
             >
               <MaterialCommunityIcons name="chat-processing-outline" size={18} color={colors.onBrandTertiary} />
               <Text style={styles.chatBtnText}>Chat</Text>
-            </Pressable>
+            </InteractivePressable>
           ) : null}
 
           {/* WhatsApp Deep Link Button */}
@@ -376,73 +391,74 @@ export default function BookingCard({
         {/* Row 2: Workflow Lifecycle Actions */}
         {/* Buyer Actions: Upload Proof / Attach Document */}
         {!isAdmin && (booking.status === "AWAITING_PAYMENT" || booking.status === "PENDING_CONFIRMATION" || booking.status === "PAYMENT_VERIFICATION") && onOpenUpload ? (
-          <Pressable
+          <InteractivePressable
             accessibilityRole="button"
-            accessibilityLabel={booking.paymentProofUrl ? "Re-upload / Update Document" : t("uploadProof")}
-            style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, styles.fullWidthBtn, pressed && { opacity: 0.9 }]}
+            accessibilityLabel={booking.paymentProofUrl ? "Unggah Ulang Dokumen / Bukti" : t("uploadProof")}
+            style={[styles.actionBtn, styles.primaryBtn, styles.fullWidthBtn]}
             onPress={() => onOpenUpload(booking)}
           >
             <MaterialCommunityIcons name="paperclip" size={18} color={colors.onBrandPrimary} />
             <Text style={styles.primaryBtnText}>
-              {booking.paymentProofUrl ? "Update File" : "Attach Document"}
+              {booking.paymentProofUrl ? "Perbarui Berkas" : "Unggah Dokumen"}
             </Text>
-          </Pressable>
+          </InteractivePressable>
         ) : null}
 
         {/* Admin Actions: Pending Confirmation */}
         {isAdmin && booking.status === "PENDING_CONFIRMATION" ? (
           <View style={styles.adminDecisionRow}>
             {onReject ? (
-              <Pressable
+              <InteractivePressable
                 accessibilityRole="button"
                 accessibilityLabel={t("rejectOrder")}
-                style={({ pressed }) => [styles.actionBtn, styles.dangerBtn, pressed && { opacity: 0.9 }]}
+                style={[styles.actionBtn, styles.dangerBtn]}
                 onPress={() => onReject(booking.bookingId)}
               >
                 <MaterialCommunityIcons name="close-circle-outline" size={17} color={colors.onErrorContainer} />
                 <Text style={styles.dangerBtnText}>{t("rejectOrder")}</Text>
-              </Pressable>
+              </InteractivePressable>
             ) : null}
             {onAccept ? (
-              <Pressable
+              <InteractivePressable
                 accessibilityRole="button"
                 accessibilityLabel={t("acceptOrder")}
-                style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, pressed && { opacity: 0.9 }]}
+                style={[styles.actionBtn, styles.primaryBtn]}
                 onPress={() => onAccept(booking.bookingId)}
               >
                 <MaterialCommunityIcons name="check-circle-outline" size={17} color={colors.onBrandPrimary} />
                 <Text style={styles.primaryBtnText}>{t("acceptOrder")}</Text>
-              </Pressable>
+              </InteractivePressable>
             ) : null}
           </View>
         ) : null}
 
         {/* Admin Actions: Payment Verification */}
         {isAdmin && booking.status === "PAYMENT_VERIFICATION" && onVerifyPayment ? (
-          <Pressable
+          <InteractivePressable
             accessibilityRole="button"
             accessibilityLabel={t("verifyPaymentBtn")}
-            style={({ pressed }) => [styles.actionBtn, styles.primaryBtn, styles.fullWidthBtn, pressed && { opacity: 0.9 }]}
+            style={[styles.actionBtn, styles.primaryBtn, styles.fullWidthBtn]}
             onPress={() => onVerifyPayment(booking.bookingId)}
           >
             <MaterialCommunityIcons name="check-decagram" size={18} color={colors.onBrandPrimary} />
             <Text style={styles.primaryBtnText}>{t("verifyPaymentBtn")}</Text>
-          </Pressable>
+          </InteractivePressable>
         ) : null}
 
         {/* Admin Actions: Mark Delivered */}
         {isAdmin && booking.status === "CONFIRMED_DELIVERING" && onMarkCompleted ? (
-          <Pressable
+          <InteractivePressable
             accessibilityRole="button"
             accessibilityLabel={t("markCompletedBtn")}
-            style={({ pressed }) => [styles.actionBtn, styles.successBtn, styles.fullWidthBtn, pressed && { opacity: 0.9 }]}
+            style={[styles.actionBtn, styles.successBtn, styles.fullWidthBtn]}
             onPress={() => onMarkCompleted(booking.bookingId)}
           >
             <MaterialCommunityIcons name="truck-check" size={18} color={colors.onSuccess} />
             <Text style={styles.successBtnText}>{t("markCompletedBtn")}</Text>
-          </Pressable>
+          </InteractivePressable>
         ) : null}
       </View>
+
 
       {/* Google Maps Delivery Route / COD Meeting Point Modal */}
       <GoogleDeliveryMapModal
@@ -499,8 +515,8 @@ const styles = StyleSheet.create({
     color: colors.onBrandPrimary,
   },
   card: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -569,7 +585,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingHorizontal: spacing.md,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: radius.pill,
   },
   statusText: {
@@ -605,7 +621,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandTertiary,
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
-    borderRadius: radius.sm,
+    minHeight: 40,
+    borderRadius: radius.lg,
     marginTop: 4,
     borderWidth: 1,
     borderColor: colors.brandPrimaryContainer,
@@ -619,7 +636,7 @@ const styles = StyleSheet.create({
   buyerBox: {
     backgroundColor: colors.surfaceSecondary,
     padding: spacing.md,
-    borderRadius: radius.sm,
+    borderRadius: radius.lg,
     gap: 4,
   },
   buyerRow: {
@@ -648,7 +665,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     marginVertical: 2,
   },
   stepItem: {
@@ -667,20 +684,23 @@ const styles = StyleSheet.create({
   stepDotActive: {
     backgroundColor: colors.brandPrimary,
   },
+  stepDotCompleted: {
+    backgroundColor: colors.success,
+  },
   stepLabel: {
-    fontSize: type.xs - 2,
+    fontSize: 10,
+    fontWeight: "700",
     color: colors.muted,
-    fontWeight: "600",
   },
   stepLabelActive: {
-    color: colors.onSurface,
+    color: colors.brandPrimary,
     fontWeight: "800",
   },
   stepLine: {
     flex: 1,
     height: 2,
     backgroundColor: colors.border,
-    marginHorizontal: 2,
+    marginHorizontal: 4,
     marginBottom: 16,
   },
   stepLineActive: {
@@ -707,7 +727,7 @@ const styles = StyleSheet.create({
   proofPreviewBox: {
     backgroundColor: "#F0FDF4",
     padding: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.brandTertiary,
     gap: spacing.xs,
@@ -724,7 +744,7 @@ const styles = StyleSheet.create({
   },
   proofThumb: {
     height: 110,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     width: "100%",
   },
   actionsContainer: {
@@ -756,6 +776,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     minHeight: touchTarget.minHeight,
     borderRadius: radius.pill,
+  },
+  editBtn: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    flex: 1,
+  },
+  editBtnText: {
+    fontSize: type.xs + 1,
+    fontWeight: "800",
+    color: "#0F3D5E",
   },
   chatBtn: {
     backgroundColor: colors.brandTertiary,
@@ -801,7 +832,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.surfaceContainer,
     padding: spacing.md,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
   },

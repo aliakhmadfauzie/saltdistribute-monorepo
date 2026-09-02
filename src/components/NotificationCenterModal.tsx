@@ -13,11 +13,13 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
 import {
   getNotificationHistory,
   subscribeNotificationHistory,
   markAllNotificationsRead,
+  markNotificationRead,
   clearNotificationHistory,
   sendTestNotification,
   requestNotificationPermission,
@@ -29,12 +31,15 @@ import { useAuth } from "../context/AuthContext";
 interface NotificationCenterModalProps {
   visible: boolean;
   onClose: () => void;
+  onNavigateBooking?: (bookingId: string, isChat?: boolean) => void;
 }
 
 export default function NotificationCenterModal({
   visible,
   onClose,
+  onNavigateBooking,
 }: NotificationCenterModalProps) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { currentUser } = useAuth();
   const [notifications, setNotifications] = useState<AppNotificationPayload[]>([]);
@@ -45,16 +50,16 @@ export default function NotificationCenterModal({
   useEffect(() => {
     if (visible) {
       setPermissionStatus(getNotificationPermissionStatus());
-      getNotificationHistory().then(setNotifications);
+      getNotificationHistory(currentUser?.userId, currentUser?.role).then(setNotifications);
     }
-  }, [visible]);
+  }, [visible, currentUser?.userId, currentUser?.role]);
 
   useEffect(() => {
-    const unsub = subscribeNotificationHistory((updated) => {
-      setNotifications(updated);
+    const unsub = subscribeNotificationHistory(() => {
+      getNotificationHistory(currentUser?.userId, currentUser?.role).then(setNotifications);
     });
     return () => unsub();
-  }, []);
+  }, [currentUser?.userId, currentUser?.role]);
 
   const handleRequestPermission = async () => {
     setIsRequestingPermission(true);
@@ -112,6 +117,24 @@ export default function NotificationCenterModal({
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const handleNotificationPress = async (item: AppNotificationPayload) => {
+    if (item.id) {
+      await markNotificationRead(item.id);
+    }
+    onClose();
+    if (item.bookingId && onNavigateBooking) {
+      onNavigateBooking(item.bookingId, item.type === "CHAT");
+      return;
+    }
+    if (item.bookingId) {
+      if (currentUser?.role === "admin" || (currentUser?.role as string) === "seller") {
+        router.push("/(admin)/orders" as any);
+      } else {
+        router.push("/(buyer)/orders" as any);
+      }
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -273,12 +296,16 @@ export default function NotificationCenterModal({
               notifications.map((item) => {
                 const { icon, color, bg } = getIconAndColor(item.type);
                 return (
-                  <View
+                  <Pressable
                     key={item.id}
-                    style={[
+                    accessibilityRole="button"
+                    accessibilityLabel={`Buka notifikasi ${item.title}`}
+                    style={({ pressed }) => [
                       styles.notifCard,
                       !item.isRead && styles.notifCardUnread,
+                      pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
                     ]}
+                    onPress={() => handleNotificationPress(item)}
                   >
                     <View style={[styles.notifIconBox, { backgroundColor: bg }]}>
                       <MaterialCommunityIcons name={icon} size={22} color={color} />
@@ -297,14 +324,14 @@ export default function NotificationCenterModal({
                       {item.bookingId && (
                         <View style={styles.bookingBadge}>
                           <Text style={styles.bookingBadgeText}>
-                            Order: #{item.bookingId.substring(0, 12)}
+                            Order: #{item.bookingId.substring(0, 12)} &bull; Ketuk untuk buka &gt;
                           </Text>
                         </View>
                       )}
                     </View>
 
                     {!item.isRead && <View style={styles.unreadDot} />}
-                  </View>
+                  </Pressable>
                 );
               })
             )}

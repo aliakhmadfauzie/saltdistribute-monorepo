@@ -1,23 +1,36 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        (request.auth.token.email == 'admin@saltdistribute.id' && request.auth.token.email_verified == true)
+      );
+    }
     
-    // Receipts folder: allow read and write
+    // Receipts folder: allow read, write with 10MB limit & image/pdf content type validation
     match /receipts/{bookingId}/{allPaths=**} {
       allow read: if true;
-      allow write: if request.resource.size < 10 * 1024 * 1024; // max 10MB
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
     }
 
-    // Chat attachments
+    // Chat attachments: 10MB limit & media/document types
     match /chat_attachments/{bookingId}/{allPaths=**} {
       allow read: if true;
-      allow write: if request.resource.size < 10 * 1024 * 1024;
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
     }
 
-    // Store branding & products
+    // Store branding & products: Public read, Admin write
     match /store_branding/{allPaths=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
   }
 }

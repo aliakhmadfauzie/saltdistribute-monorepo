@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "post_edit": [
+      {
+        "name": "typecheck-reminder",
+        "description": "Remind agent to verify TypeScript integrity after edits",
+        "command": "echo 'TypeScript validation checkpoint ready'"
+      }
+    ]
+  }
+}

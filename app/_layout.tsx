@@ -9,6 +9,7 @@ import { AuthProvider } from "../src/context/AuthContext";
 import { AppProvider } from "../src/context/AppContext";
 import { I18nProvider } from "../src/i18n";
 import InAppNotificationToast from "../src/components/InAppNotificationToast";
+import AdminQuickOrderOverlay from "../src/components/AdminQuickOrderOverlay";
 
 LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -33,6 +34,7 @@ export default function RootLayout() {
           <AppProvider>
             <Stack screenOptions={{ headerShown: false }} />
             <InAppNotificationToast />
+            <AdminQuickOrderOverlay />
           </AppProvider>
         </AuthProvider>
       </I18nProvider>

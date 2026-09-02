@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../theme";
 import { useApp } from "../context/AppContext";
+import { formatIDR } from "../api";
 import { useI18n } from "../i18n";
 import { Booking, PurchaseMode } from "../types";
 import { getDeviceCurrentLocation, getCachedSellerLocation } from "../services/locationService";
@@ -30,22 +31,25 @@ import {
 import { APP_BUSINESS_CONFIG } from "../services/configService";
 import GoogleLocationPickerModal, { SelectedLocationResult } from "./GoogleLocationPickerModal";
 import SubmissionStatusModal, { SubmissionState } from "./SubmissionStatusModal";
+import ChatModal from "./ChatModal";
 
 interface GuestOrderModalProps {
   visible: boolean;
   onClose: () => void;
+  onOrderCreatedAndOpenChat?: (booking: Booking) => void;
 }
 
 const GRAM_PRESETS = [0.5, 1.0, 2.0, 3.0, 5.0];
 const AMOUNT_PRESETS = [400000, 800000, 1600000, 2400000, 4000000];
 
-export default function GuestOrderModal({ visible, onClose }: GuestOrderModalProps) {
+export default function GuestOrderModal({ visible, onClose, onOrderCreatedAndOpenChat }: GuestOrderModalProps) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
-  const { inventory, createGuestBooking, getWhatsAppSellerUrl, activeGuestBooking, clearGuestSession } = useApp();
+  const { inventory, createGuestBooking, getWhatsAppSellerUrl, activeGuestBooking, clearGuestSession, sendMessage } = useApp();
 
   // Multi-step Wizard Step State: 1 = Pesanan & Nama, 2 = Pengiriman & Lokasi, 3 = Review & Submit
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Blurry Pop-up Submission State (loading / success / failed)
   const [submissionState, setSubmissionState] = useState<SubmissionState>("idle");
@@ -133,7 +137,15 @@ export default function GuestOrderModal({ visible, onClose }: GuestOrderModalPro
     return generateDynamicMeetingPoints(guestLat, guestLng, undefined, undefined, location);
   }, [guestLat, guestLng, location]);
 
-  const selectedMeetingPoint = meetingPointsList.find((mp) => mp.id === selectedMeetingPointId) || meetingPointsList[0];
+  const selectedMeetingPoint =
+    (meetingPointsList && meetingPointsList.find((mp) => mp.id === selectedMeetingPointId)) ||
+    (meetingPointsList && meetingPointsList[0]) || {
+      id: "mp_belawan_main",
+      name: "Gudang Belawan / Hub COD",
+      address: "Pelabuhan Belawan, Medan",
+      distanceFromHubKm: 0,
+      estimatedMinutes: 10,
+    };
 
   const deliveryFee = deliveryType === "COD" ? 0 : calculateDynamicDeliveryFee(directDistanceKm);
 
@@ -236,8 +248,22 @@ export default function GuestOrderModal({ visible, onClose }: GuestOrderModalPro
         meetingPointId: deliveryType === "COD" ? selectedMeetingPoint.id : undefined,
         meetingPointName: deliveryType === "COD" ? selectedMeetingPoint.name : undefined,
       });
+
+      // Automatically attach structured order details into the conversation
+      sendMessage(
+        booking.bookingId,
+        booking.buyerId,
+        booking.buyerName,
+        "buyer",
+        `📦 [Pesanan Masuk] ${calculations.quantityGram}g Garam NaCl 99.2% (${booking.deliveryType === "COD" ? "Titik Temu COD" : "Pengantaran Langsung"}) • Total: ${formatIDR(calculations.grandTotal)}`
+      );
+
       setCreatedBooking(booking);
-      setSubmissionState("success");
+      setSubmissionState("idle");
+      setIsChatOpen(true);
+      if (onOrderCreatedAndOpenChat) {
+        onOrderCreatedAndOpenChat(booking);
+      }
     } catch (e: any) {
       const errMsg = e?.message || "Gagal membuat pesanan guest";
       setError(errMsg);
@@ -971,18 +997,36 @@ export default function GuestOrderModal({ visible, onClose }: GuestOrderModalPro
             submissionState === "failed"
               ? submissionError || undefined
               : submissionState === "success"
-              ? "Pesanan kilat guest Anda berhasil dibuat dan disimpan ke Cloud Firestore!"
+              ? "Pesanan kilat berhasil dibuat! Rincian pesanan telah dilampirkan ke percakapan langsung dengan penjual."
               : undefined
           }
-          primaryActionLabel="Lanjut & Buka WhatsApp"
+          primaryActionLabel="Buka Chat Penjual →"
           onPrimaryAction={() => {
             setSubmissionState("idle");
             if (createdBooking) {
-              handleOpenWhatsApp(createdBooking);
+              if (onOrderCreatedAndOpenChat) {
+                onOrderCreatedAndOpenChat(createdBooking);
+              } else {
+                setIsChatOpen(true);
+              }
             }
           }}
           onRetry={handleSubmit}
           onClose={() => setSubmissionState("idle")}
+        />
+
+        {/* Dedicated Live Chat Modal for Guest Quick Order */}
+        <ChatModal
+          visible={isChatOpen && !!createdBooking}
+          booking={createdBooking}
+          onClose={() => {
+            setIsChatOpen(false);
+            handleResetAndClose();
+          }}
+          onOrderCompleted={() => {
+            setIsChatOpen(false);
+            handleResetAndClose();
+          }}
         />
       </View>
     </Modal>
@@ -1179,14 +1223,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
+    minHeight: touchTarget.minHeight,
     fontSize: type.md,
     color: colors.onSurface,
   },
   textArea: {
-    minHeight: 56,
+    minHeight: 72,
     textAlignVertical: "top",
   },
   modeToggleRow: {
@@ -1200,9 +1245,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.xs,
     paddingVertical: spacing.sm + 2,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight,
+    borderRadius: radius.lg,
     backgroundColor: colors.surfaceContainer,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   modeToggleBtnActive: {
@@ -1233,7 +1279,10 @@ const styles = StyleSheet.create({
   },
   presetChip: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.xs + 4,
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
@@ -1259,12 +1308,13 @@ const styles = StyleSheet.create({
   inputPrefix: {
     backgroundColor: colors.surfaceContainerHigh,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    minHeight: touchTarget.minHeight,
+    justifyContent: "center",
     borderWidth: 1,
     borderRightWidth: 0,
     borderColor: colors.border,
-    borderTopLeftRadius: radius.md,
-    borderBottomLeftRadius: radius.md,
+    borderTopLeftRadius: radius.lg,
+    borderBottomLeftRadius: radius.lg,
   },
   prefixText: {
     fontSize: type.md,
@@ -1274,12 +1324,13 @@ const styles = StyleSheet.create({
   inputSuffix: {
     backgroundColor: colors.surfaceContainerHigh,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    minHeight: touchTarget.minHeight,
+    justifyContent: "center",
     borderWidth: 1,
     borderLeftWidth: 0,
     borderColor: colors.border,
-    borderTopRightRadius: radius.md,
-    borderBottomRightRadius: radius.md,
+    borderTopRightRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
   },
   suffixText: {
     fontSize: type.md,
@@ -1289,7 +1340,7 @@ const styles = StyleSheet.create({
   quickCalcCard: {
     flexDirection: "row",
     backgroundColor: colors.surfaceContainerHigh,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     alignItems: "center",
     borderWidth: 1,
@@ -1317,10 +1368,12 @@ const styles = StyleSheet.create({
   stepPrimaryBtn: {
     backgroundColor: colors.brandPrimary,
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight + 2,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
+    ...shadows.sm,
   },
   stepPrimaryBtnText: {
     color: colors.onBrandPrimary,
@@ -1334,9 +1387,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   stepBackBtn: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight + 2,
+    borderRadius: radius.pill,
     backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1357,7 +1411,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainer,
     borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     alignItems: "center",
     gap: 4,
@@ -1380,7 +1434,7 @@ const styles = StyleSheet.create({
   dynamicDeliveryHud: {
     flexDirection: "row",
     backgroundColor: colors.surfaceContainerHigh,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.sm + 2,
     alignItems: "center",
     borderWidth: 1,
@@ -1417,7 +1471,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight,
+    borderRadius: radius.lg,
     backgroundColor: colors.surfaceContainerHigh,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1450,7 +1505,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -1525,7 +1580,7 @@ const styles = StyleSheet.create({
   },
   reviewCard: {
     backgroundColor: colors.surfaceContainerHigh,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1586,7 +1641,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     backgroundColor: "rgba(0, 108, 76, 0.08)",
     padding: spacing.sm + 2,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "rgba(0, 108, 76, 0.2)",
   },
@@ -1601,7 +1656,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: colors.brandPrimary,
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight + 2,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
@@ -1621,7 +1677,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     backgroundColor: "#FEE2E2",
     padding: spacing.sm,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
   },
   errorText: {
     color: colors.error,
@@ -1658,7 +1714,7 @@ const styles = StyleSheet.create({
   summaryCard: {
     width: "100%",
     backgroundColor: colors.surfaceContainerHigh,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.xs,
     borderWidth: 1,
@@ -1702,7 +1758,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#25D366",
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight + 2,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
@@ -1715,6 +1772,9 @@ const styles = StyleSheet.create({
   },
   doneBtn: {
     paddingVertical: spacing.sm,
+    minHeight: touchTarget.minHeight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   doneBtnText: {
     color: colors.onSurfaceSecondary,

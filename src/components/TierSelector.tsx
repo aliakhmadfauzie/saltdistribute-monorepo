@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { UnitTier } from "../types";
 import { formatIDR } from "../api";
-import { colors, radius, spacing, type, shadows, touchTarget } from "../theme";
+import { colors, radius, spacing, type, shadows, touchTarget, glass } from "../theme";
+import InteractivePressable from "./InteractivePressable";
 
 interface TierSelectorProps {
   tiers: UnitTier[];
@@ -27,17 +28,16 @@ export default function TierSelector({
         const finalPrice = subtotal - discountAmount;
 
         return (
-          <Pressable
+          <InteractivePressable
             key={tier.id}
             accessibilityRole="radio"
             accessibilityState={{ checked: isSelected }}
             accessibilityLabel={`${tier.name} ${tier.label}, ${formatIDR(finalPrice)}, ${
               tier.discountPercent > 0 ? `Diskon ${tier.discountPercent} persen` : ""
             }`}
-            style={({ pressed }) => [
+            style={[
               styles.card,
               isSelected && styles.cardSelected,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
             ]}
             onPress={() => onSelectTier(tier)}
           >
@@ -103,12 +103,13 @@ export default function TierSelector({
                 </Text>
               </View>
             </View>
-          </Pressable>
+          </InteractivePressable>
         );
       })}
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   grid: {

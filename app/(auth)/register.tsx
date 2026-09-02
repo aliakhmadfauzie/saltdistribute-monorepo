@@ -39,6 +39,8 @@ export default function RegisterScreen() {
   const [deliveryZone, setDeliveryZone] = useState<string | undefined>();
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +54,7 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     const finalUsername = username.trim().toLowerCase() || email.split("@")[0].toLowerCase();
     if (!fullName || !finalUsername || !email || !phone || !password) {
-      setError("Please complete all required fields including Username.");
+      setError("Mohon lengkapi semua field wajib bertanda bintang (*)");
       return;
     }
     setError(null);
@@ -72,7 +74,7 @@ export default function RegisterScreen() {
       });
       router.replace("/(buyer)");
     } catch (e: any) {
-      setError(e?.message || "Registration failed. Please try again.");
+      setError(e?.message || "Pendaftaran gagal. Silakan periksa koneksi dan coba lagi.");
     } finally {
       setBusy(false);
     }
@@ -83,164 +85,389 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
+      {/* Top Edge-to-Edge Brand Header */}
       <LinearGradient
         colors={[colors.brandPrimary, "#004D36"]}
-        style={[styles.header, { paddingTop: insets.top + spacing.md }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
       >
         <View style={[styles.headerRow, layout.centeredContainer]}>
           <Link href="/(auth)/login" asChild>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Kembali ke halaman login"
-              style={styles.backBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={({ pressed }) => [styles.backBtn, pressed && styles.pressedState]}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <MaterialCommunityIcons name="arrow-left" size={24} color={colors.onBrandPrimary} />
             </Pressable>
           </Link>
-          <AppLogo variant="badge" size="sm" theme="light" />
+          <AppLogo variant="compact" size="sm" theme="light" />
           <LangToggle />
+        </View>
+
+        <View style={[styles.heroTextContainer, layout.centeredContainer]}>
+          <View style={styles.badgeRow}>
+            <View style={styles.platformBadge}>
+              <MaterialCommunityIcons name="account-plus-outline" size={14} color="#89F8C7" />
+              <Text style={styles.platformBadgeText}>PENDAFTARAN TENANT / BUYER</Text>
+            </View>
+          </View>
+          <Text style={styles.tagline}>{t("register")}</Text>
+          <Text style={styles.subTagline}>Bergabung ke platform distribusi garam resmi B2B</Text>
         </View>
       </LinearGradient>
 
+      {/* Main Registration Form Body */}
       <ScrollView
         contentContainerStyle={[
           styles.body,
           layout.centeredContainer,
-          { maxWidth: 520, paddingBottom: insets.bottom + spacing.xxl },
+          { maxWidth: 520, paddingBottom: insets.bottom + spacing.xxxl },
         ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.field}>
-          <Text style={styles.label}>{t("fullName")} *</Text>
-          <TextInput
-            style={styles.input}
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Budi Santoso"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Username *</Text>
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={(val) => setUsername(val.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
-            autoCapitalize="none"
-            placeholder="e.g. budi_jaya"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>{t("companyName")}</Text>
-          <TextInput
-            style={styles.input}
-            value={companyName}
-            onChangeText={setCompanyName}
-            placeholder="PT Jaya Mandiri Pangan"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>{t("phone")} *</Text>
-          <TextInput
-            style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            placeholder="+628123456789"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>{t("email")} *</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="budi@example.com"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>{t("address")}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("pickLocationOnMap")}
-              style={({ pressed }) => [styles.mapPickerBtn, pressed && { opacity: 0.85 }]}
-              onPress={() => setIsMapModalOpen(true)}
-            >
-              <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
-              <Text style={styles.mapPickerBtnText}>{t("pickLocationOnMap")}</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.input}
-            value={address}
-            onChangeText={setAddress}
-            placeholder="Jl. Industri Belawan No. 45, Medan"
-            placeholderTextColor={colors.muted}
-          />
-          {latitude && longitude ? (
-            <View style={styles.geoBadge}>
-              <MaterialCommunityIcons name="map-marker-check" size={14} color={colors.brandPrimary} />
-              <Text style={styles.geoBadgeText}>
-                GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)} ({deliveryZone || "Medan"})
-              </Text>
+        {/* Section 1: Akun & Kontak */}
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="card-account-details-outline" size={18} color={colors.brandPrimary} />
             </View>
-          ) : null}
+            <View style={styles.sectionHeaderTextCol}>
+              <Text style={styles.sectionTitle}>Informasi Akun & Kontak</Text>
+              <Text style={styles.sectionSubtitle}>Data utama untuk login dan koordinasi pesanan</Text>
+            </View>
+          </View>
+
+          {/* Full Name */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              {t("fullName")} <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "fullName" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="account-outline"
+                size={20}
+                color={focusedField === "fullName" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                onFocus={() => setFocusedField("fullName")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="e.g. Budi Santoso"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="words"
+                returnKeyType="next"
+                accessibilityLabel="Nama Lengkap"
+              />
+            </View>
+          </View>
+
+          {/* Username */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Username <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "username" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="at"
+                size={20}
+                color={focusedField === "username" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={username}
+                onChangeText={(val) => setUsername(val.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                onFocus={() => setFocusedField("username")}
+                onBlur={() => setFocusedField(null)}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="e.g. budi_jaya"
+                placeholderTextColor={colors.muted}
+                returnKeyType="next"
+                accessibilityLabel="Username"
+              />
+            </View>
+          </View>
+
+          {/* Company Name */}
+          <View style={styles.field}>
+            <Text style={styles.label}>{t("companyName")}</Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "companyName" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="office-building-outline"
+                size={20}
+                color={focusedField === "companyName" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={companyName}
+                onChangeText={setCompanyName}
+                onFocus={() => setFocusedField("companyName")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="e.g. PT Jaya Mandiri Pangan"
+                placeholderTextColor={colors.muted}
+                returnKeyType="next"
+                accessibilityLabel="Nama Perusahaan"
+              />
+            </View>
+          </View>
+
+          {/* Phone */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              {t("phone")} <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "phone" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="phone-outline"
+                size={20}
+                color={focusedField === "phone" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                onFocus={() => setFocusedField("phone")}
+                onBlur={() => setFocusedField(null)}
+                keyboardType="phone-pad"
+                placeholder="e.g. 081234567890"
+                placeholderTextColor={colors.muted}
+                returnKeyType="next"
+                accessibilityLabel="Nomor Telepon atau WhatsApp"
+              />
+            </View>
+          </View>
+
+          {/* Email */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              {t("email")} <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "email" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={20}
+                color={focusedField === "email" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setFocusedField("email")}
+                onBlur={() => setFocusedField(null)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="e.g. budi@perusahaan.com"
+                placeholderTextColor={colors.muted}
+                returnKeyType="next"
+                accessibilityLabel="Alamat Email"
+              />
+            </View>
+          </View>
+
+          {/* Password */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              {t("password")} <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "password" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={20}
+                color={focusedField === "password" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setFocusedField("password")}
+                onBlur={() => setFocusedField(null)}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Minimal 6 karakter"
+                placeholderTextColor={colors.muted}
+                returnKeyType="done"
+                accessibilityLabel="Kata Sandi"
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.inputTrailingBtn}
+              >
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={focusedField === "password" ? colors.brandPrimary : colors.muted}
+                />
+              </Pressable>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>{t("password")} *</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="••••••••"
-            placeholderTextColor={colors.muted}
-          />
+        {/* Section 2: Informasi Pengiriman & Lokasi Pabrik */}
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionIconCircle, { backgroundColor: "#FEF3C7" }]}>
+              <MaterialCommunityIcons name="map-marker-radius-outline" size={18} color="#D97706" />
+            </View>
+            <View style={styles.sectionHeaderTextCol}>
+              <Text style={styles.sectionTitle}>Lokasi Pengiriman & Pabrik</Text>
+              <Text style={styles.sectionSubtitle}>Untuk estimasi armada pengiriman & zona tarif</Text>
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>{t("address")}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("pickLocationOnMap")}
+                accessibilityHint="Buka peta interaktif untuk menentukan titik koordinat GPS"
+                style={({ pressed }) => [
+                  styles.mapPickerBtn,
+                  pressed && styles.pressedState,
+                ]}
+                onPress={() => setIsMapModalOpen(true)}
+              >
+                <MaterialCommunityIcons name="google-maps" size={16} color={colors.brandPrimary} />
+                <Text style={styles.mapPickerBtnText}>{t("pickLocationOnMap")}</Text>
+              </Pressable>
+            </View>
+
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedField === "address" && styles.inputWrapperFocused,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="map-marker-outline"
+                size={20}
+                color={focusedField === "address" ? colors.brandPrimary : colors.muted}
+                style={styles.inputLeadingIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={address}
+                onChangeText={setAddress}
+                onFocus={() => setFocusedField("address")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="Jl. Industri Belawan No. 45, Medan"
+                placeholderTextColor={colors.muted}
+                accessibilityLabel="Alamat Gudang / Pabrik"
+              />
+            </View>
+
+            {latitude && longitude ? (
+              <View style={styles.geoBadge}>
+                <MaterialCommunityIcons name="map-marker-check" size={16} color={colors.brandPrimary} />
+                <View style={styles.geoBadgeTextCol}>
+                  <Text style={styles.geoBadgeTitle}>Titik GPS Terpasang:</Text>
+                  <Text style={styles.geoBadgeText}>
+                    {latitude.toFixed(4)}, {longitude.toFixed(4)} ({deliveryZone || "Zona Standard"})
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
         </View>
 
+        {/* Error Banner with Accessibility Live Region */}
         {error ? (
-          <View style={styles.errorBanner}>
-            <MaterialCommunityIcons name="alert-circle" size={18} color={colors.error} />
-            <Text style={styles.err}>{error}</Text>
+          <View
+            style={styles.errorBanner}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
+            <MaterialCommunityIcons name="alert-circle-outline" size={20} color={colors.error} />
+            <View style={styles.errorTextCol}>
+              <Text style={styles.errorHeading}>Gagal Mendaftar</Text>
+              <Text style={styles.err}>{error}</Text>
+            </View>
           </View>
         ) : null}
 
+        {/* Primary CTA Register Button */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("register")}
+          accessibilityHint="Kirim pendaftaran akun pembeli baru"
           style={({ pressed }) => [
             styles.cta,
             (!fullName || !email || !phone || !password || busy) && styles.ctaDisabled,
-            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+            pressed && styles.pressedState,
           ]}
           onPress={handleRegister}
           disabled={busy || !fullName || !email || !phone || !password}
         >
           {busy ? (
-            <ActivityIndicator color={colors.onBrandPrimary} />
+            <View style={styles.busyRow}>
+              <ActivityIndicator color={colors.onBrandPrimary} size="small" />
+              <Text style={styles.ctaText}>Mendaftarkan Akun...</Text>
+            </View>
           ) : (
-            <Text style={styles.ctaText}>{t("register")}</Text>
+            <View style={styles.ctaContentRow}>
+              <Text style={styles.ctaText}>{t("register")}</Text>
+              <MaterialCommunityIcons name="arrow-right" size={20} color={colors.onBrandPrimary} />
+            </View>
           )}
         </Pressable>
 
-        <View style={styles.helperRow}>
+        {/* Login Helper Footer */}
+        <View style={styles.helperCard}>
           <Text style={styles.helper}>{t("have_account")} </Text>
           <Link href="/(auth)/login" asChild>
-            <Pressable hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Masuk dengan akun yang sudah ada"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+            >
               <Text style={styles.helperLink}>{t("login")}</Text>
             </Pressable>
           </Link>
@@ -261,37 +488,140 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.surface },
+  root: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: radius.xl + 4,
+    borderBottomRightRadius: radius.xl + 4,
     ...shadows.md,
   },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   backBtn: {
     minWidth: touchTarget.minWidth,
     minHeight: touchTarget.minHeight,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: { color: colors.onBrandPrimary, fontSize: type.lg, fontWeight: "800" },
-  body: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, gap: spacing.md },
-  field: { gap: spacing.xs },
+  heroTextContainer: {
+    marginTop: spacing.sm,
+    gap: spacing.xs,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  platformBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: "rgba(137, 248, 199, 0.3)",
+  },
+  platformBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#89F8C7",
+    letterSpacing: 0.6,
+  },
+  tagline: {
+    color: "#FFFFFF",
+    fontSize: type.xl + 2,
+    fontWeight: "900",
+    letterSpacing: 0.2,
+  },
+  subTagline: {
+    color: colors.brandTertiary,
+    fontSize: type.xs + 1,
+    fontWeight: "500",
+    lineHeight: 18,
+    opacity: 0.95,
+  },
+  body: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    gap: spacing.lg,
+  },
+  pressedState: {
+    opacity: 0.9,
+    transform: [{ scale: 0.985 }],
+  },
+  formCard: {
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.md + 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surfaceContainer,
+    paddingBottom: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  sectionIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: "#DCFCE7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionHeaderTextCol: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: type.sm + 1,
+    fontWeight: "800",
+    color: colors.onSurface,
+  },
+  sectionSubtitle: {
+    fontSize: type.xs - 1,
+    fontWeight: "500",
+    color: colors.onSurfaceSecondary,
+    marginTop: 1,
+  },
+  field: {
+    gap: spacing.xs,
+  },
   labelRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  label: { fontSize: type.sm, color: colors.onSurfaceSecondary, fontWeight: "700" },
+  label: {
+    fontSize: type.sm,
+    color: colors.onSurface,
+    fontWeight: "700",
+  },
+  requiredStar: {
+    color: colors.error,
+    fontWeight: "800",
+  },
   mapPickerBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     backgroundColor: colors.brandTertiary,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: 5,
     borderRadius: radius.pill,
   },
   mapPickerBtnText: {
@@ -299,54 +629,134 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.onBrandTertiary,
   },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    minHeight: touchTarget.minHeight + 2,
+  },
+  inputWrapperFocused: {
+    borderColor: colors.brandPrimary,
+    backgroundColor: "#FFFFFF",
+    ...shadows.sm,
+  },
+  inputLeadingIcon: {
+    marginRight: spacing.sm,
+  },
+  input: {
+    flex: 1,
+    fontSize: type.base,
+    color: colors.onSurface,
+    minHeight: touchTarget.minHeight,
+    paddingVertical: spacing.sm,
+  },
+  inputTrailingBtn: {
+    padding: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 32,
+    minHeight: 32,
+  },
   geoBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: colors.surfaceSecondary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.xs,
-    alignSelf: "flex-start",
+    gap: spacing.xs + 2,
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.md,
+    marginTop: spacing.xs,
+  },
+  geoBadgeTextCol: {
+    flex: 1,
+  },
+  geoBadgeTitle: {
+    fontSize: type.xs - 2,
+    fontWeight: "800",
+    color: colors.brandPrimary,
+    textTransform: "uppercase",
   },
   geoBadgeText: {
-    fontSize: type.xs - 1,
-    color: colors.brandPrimary,
-    fontWeight: "700",
-  },
-  input: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    minHeight: touchTarget.minHeight,
-    fontSize: type.base,
+    fontSize: type.xs,
     color: colors.onSurface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    fontWeight: "600",
   },
   errorBanner: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs + 2,
+    alignItems: "flex-start",
+    gap: spacing.sm,
     backgroundColor: colors.errorContainer,
     padding: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.error,
   },
-  err: { color: colors.onErrorContainer, fontSize: type.sm, fontWeight: "700", flex: 1 },
+  errorTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  errorHeading: {
+    fontSize: type.xs + 1,
+    fontWeight: "800",
+    color: colors.onErrorContainer,
+  },
+  err: {
+    color: colors.onErrorContainer,
+    fontSize: type.xs,
+    fontWeight: "500",
+    lineHeight: 18,
+  },
   cta: {
-    marginTop: spacing.sm,
     backgroundColor: colors.brandPrimary,
     borderRadius: radius.pill,
     minHeight: touchTarget.minHeight + 4,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: spacing.xl,
     ...shadows.md,
   },
   ctaDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
-  ctaText: { color: colors.onBrandPrimary, fontSize: type.lg, fontWeight: "800" },
-  helperRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: spacing.md },
-  helper: { color: colors.onSurfaceSecondary, fontSize: type.base },
-  helperLink: { color: colors.brandPrimary, fontSize: type.base, fontWeight: "800" },
+  ctaContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  busyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  ctaText: {
+    color: colors.onBrandPrimary,
+    fontSize: type.md + 1,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  helperCard: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+  },
+  helper: {
+    color: colors.onSurfaceSecondary,
+    fontSize: type.sm,
+    fontWeight: "500",
+  },
+  helperLink: {
+    color: colors.brandPrimary,
+    fontSize: type.sm,
+    fontWeight: "800",
+    textDecorationLine: "underline",
+  },
 });
+

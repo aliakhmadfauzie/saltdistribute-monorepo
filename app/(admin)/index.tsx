@@ -16,12 +16,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { colors, radius, spacing, type, shadows, layout } from "../../src/theme";
+import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
 import { useApp, useAuth, formatIDR, formatGrams, Booking } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import LangToggle from "../../src/components/LangToggle";
 import RestockModal from "../../src/components/RestockModal";
 import OrderInvestigationModal from "../../src/components/OrderInvestigationModal";
+import AgentDetailEditModal from "../../src/components/AgentDetailEditModal";
 import AppLogo from "../../src/components/AppLogo";
 import FloatingAdminActions from "../../src/components/FloatingAdminActions";
 import NotificationButton from "../../src/components/NotificationButton";
@@ -57,6 +58,7 @@ export default function AdminDashboardScreen() {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("ALL");
   const [restockModalVisible, setRestockModalVisible] = useState(false);
   const [selectedBookingForInvestigation, setSelectedBookingForInvestigation] = useState<Booking | null>(null);
+  const [selectedBookingForEdit, setSelectedBookingForEdit] = useState<Booking | null>(null);
 
   // Time-filtered bookings calculation
   const filteredBookingsByTime = useMemo(() => {
@@ -77,18 +79,18 @@ export default function AdminDashboardScreen() {
 
   // Financial calculations for selected range
   const rangeCompletedBookings = useMemo(() => {
-    return filteredBookingsByTime.filter((b) => b.status === "COMPLETED");
+    return (filteredBookingsByTime || []).filter((b) => b && b.status === "COMPLETED");
   }, [filteredBookingsByTime]);
 
   const rangeRevenue = useMemo(() => {
-    return rangeCompletedBookings.reduce((sum, b) => sum + b.grandTotal, 0);
+    return rangeCompletedBookings.reduce((sum, b) => sum + (b.grandTotal || 0), 0);
   }, [rangeCompletedBookings]);
 
   const rangeVolumeGram = useMemo(() => {
-    return rangeCompletedBookings.reduce((sum, b) => sum + b.quantityGram, 0);
+    return rangeCompletedBookings.reduce((sum, b) => sum + (b.quantityGram || 0), 0);
   }, [rangeCompletedBookings]);
 
-  const avgCOGS = financialMetrics.averageCostPerGram || 600000;
+  const avgCOGS = (financialMetrics && financialMetrics.averageCostPerGram) || 600000;
   const rangeCOGS = rangeVolumeGram * avgCOGS;
   const rangeGrossProfit = Math.max(0, rangeRevenue - rangeCOGS);
   const rangeProfitMargin = rangeRevenue > 0 ? ((rangeGrossProfit / rangeRevenue) * 100).toFixed(1) : "0";
@@ -124,21 +126,23 @@ export default function AdminDashboardScreen() {
       }
     > = {};
 
-    bookings.forEach((b) => {
-      if (!buyerMap[b.buyerId]) {
-        buyerMap[b.buyerId] = {
-          buyerId: b.buyerId,
-          buyerName: b.buyerName,
-          buyerPhone: b.buyerPhone,
+    (bookings || []).forEach((b) => {
+      if (!b) return;
+      const buyerId = b.buyerId || "guest_buyer";
+      if (!buyerMap[buyerId]) {
+        buyerMap[buyerId] = {
+          buyerId,
+          buyerName: b.buyerName || "Guest Buyer",
+          buyerPhone: b.buyerPhone || "-",
           totalRevenue: 0,
           totalVolumeGram: 0,
           orderCount: 0,
         };
       }
       if (b.status === "COMPLETED" || b.status === "CONFIRMED_DELIVERING" || b.status === "PAYMENT_VERIFICATION") {
-        buyerMap[b.buyerId].totalRevenue += b.grandTotal;
-        buyerMap[b.buyerId].totalVolumeGram += b.quantityGram;
-        buyerMap[b.buyerId].orderCount += 1;
+        buyerMap[buyerId].totalRevenue += (b.grandTotal || 0);
+        buyerMap[buyerId].totalVolumeGram += (b.quantityGram || 0);
+        buyerMap[buyerId].orderCount += 1;
       }
     });
 
@@ -147,12 +151,14 @@ export default function AdminDashboardScreen() {
 
   // Search & Status filtered for table
   const searchableBookings = useMemo(() => {
-    return bookings.filter((b) => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    return (bookings || []).filter((b) => {
+      if (!b) return false;
       const matchesSearch =
-        searchQuery.trim() === "" ||
-        b.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.buyerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.packageLabel.toLowerCase().includes(searchQuery.toLowerCase());
+        q === "" ||
+        (b.bookingId && b.bookingId.toLowerCase().includes(q)) ||
+        (b.buyerName && b.buyerName.toLowerCase().includes(q)) ||
+        (b.packageLabel && b.packageLabel.toLowerCase().includes(q));
 
       const matchesStatus =
         selectedStatusFilter === "ALL" || b.status === selectedStatusFilter;
@@ -236,11 +242,13 @@ export default function AdminDashboardScreen() {
     );
   };
 
+  const availableQty = (inventory && inventory.availableQuantityGram) || 0;
+  const isStockAvail = Boolean(inventory && inventory.isStockAvailable);
   const stockPercentage = Math.min(
     100,
-    Math.round((inventory.availableQuantityGram / MAX_WAREHOUSE_CAPACITY_GRAMS) * 100)
+    Math.round((availableQty / MAX_WAREHOUSE_CAPACITY_GRAMS) * 100)
   );
-  const isLowStock = inventory.availableQuantityGram < 50;
+  const isLowStock = availableQty < 50;
 
   return (
     <View style={styles.root}>
@@ -292,17 +300,17 @@ export default function AdminDashboardScreen() {
           <View
             style={[
               styles.statusChip,
-              inventory.isStockAvailable ? styles.statusChipActive : styles.statusChipInactive,
+              isStockAvail ? styles.statusChipActive : styles.statusChipInactive,
             ]}
           >
             <View
               style={[
                 styles.pulseDot,
-                inventory.isStockAvailable ? styles.pulseDotActive : styles.pulseDotInactive,
+                isStockAvail ? styles.pulseDotActive : styles.pulseDotInactive,
               ]}
             />
             <Text style={styles.statusChipText}>
-              {inventory.isStockAvailable ? "ONLINE" : "HALTED"}
+              {isStockAvail ? "ONLINE" : "HALTED"}
             </Text>
           </View>
         </View>
@@ -360,9 +368,9 @@ export default function AdminDashboardScreen() {
           <View style={styles.alertCard}>
             <MaterialCommunityIcons name="alert-decagram" size={24} color={colors.warning} />
             <View style={styles.alertTextWrapper}>
-              <Text style={styles.alertTitle}>Warehouse Low Stock Alert</Text>
+              <Text style={styles.alertTitle}>Peringatan Stok Gudang Menipis</Text>
               <Text style={styles.alertDesc}>
-                Remaining inventory is below safety reserve ({formatGrams(inventory.availableQuantityGram)}). Inbound restock recommended.
+                Sisa stok di bawah batas cadangan aman ({formatGrams(inventory.availableQuantityGram)}). Disarankan untuk mencatat pasokan masuk.
               </Text>
             </View>
           </View>
@@ -377,12 +385,12 @@ export default function AdminDashboardScreen() {
                 {formatGrams(inventory.availableQuantityGram)}
               </Text>
               <Text style={styles.stockCapacitySub}>
-                {stockPercentage}% of warehouse nominal capacity (1,000 g reserve max)
+                {stockPercentage}% dari kapasitas nominal gudang (maksimal cadangan 1.000 g)
               </Text>
             </View>
             <View style={styles.switchWrapper}>
               <Text style={styles.switchLabel}>
-                {inventory.isStockAvailable ? "Accepting Orders" : "Closed"}
+                {inventory.isStockAvailable ? "Menerima Pesanan" : "Tutup"}
               </Text>
               <Switch
                 accessibilityRole="switch"
@@ -412,7 +420,7 @@ export default function AdminDashboardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="finance" size={20} color={colors.brandPrimary} />
-            <Text style={styles.sectionTitle}>Financial & Volume KPI Metrics</Text>
+            <Text style={styles.sectionTitle}>Metrik KPI Keuangan & Volume</Text>
           </View>
 
           <View style={styles.kpiGrid}>
@@ -425,7 +433,7 @@ export default function AdminDashboardScreen() {
                 <Text style={styles.kpiLabel}>{t("revenue")}</Text>
               </View>
               <Text style={styles.kpiValue}>{formatIDR(rangeRevenue)}</Text>
-              <Text style={styles.kpiFooter}>From {rangeCompletedBookings.length} fulfilled orders</Text>
+              <Text style={styles.kpiFooter}>Dari {rangeCompletedBookings.length} pesanan selesai</Text>
             </View>
 
             {/* Gross Profit & Margin */}
@@ -441,7 +449,7 @@ export default function AdminDashboardScreen() {
               <Text style={[styles.kpiValue, { color: colors.success }]}>
                 {formatIDR(rangeGrossProfit)}
               </Text>
-              <Text style={styles.kpiFooter}>{t("grossProfit")} (Revenue - COGS)</Text>
+              <Text style={styles.kpiFooter}>{t("grossProfit")} (Pendapatan - HPP)</Text>
             </View>
 
             {/* Volume Distributed */}
@@ -453,7 +461,7 @@ export default function AdminDashboardScreen() {
                 <Text style={styles.kpiLabel}>{t("volumeDistributed")}</Text>
               </View>
               <Text style={styles.kpiValue}>{formatGrams(rangeVolumeGram)}</Text>
-              <Text style={styles.kpiFooter}>Fulfilled wholesale volume</Text>
+              <Text style={styles.kpiFooter}>Total volume grosir tersalurkan</Text>
             </View>
 
             {/* Average Order Value (AOV) */}
@@ -465,7 +473,7 @@ export default function AdminDashboardScreen() {
                 <Text style={styles.kpiLabel}>{t("avgOrderValue")}</Text>
               </View>
               <Text style={styles.kpiValue}>{formatIDR(rangeAOV)}</Text>
-              <Text style={styles.kpiFooter}>AOV per completed transaction</Text>
+              <Text style={styles.kpiFooter}>Rata-rata per transaksi selesai</Text>
             </View>
           </View>
         </View>
@@ -474,7 +482,7 @@ export default function AdminDashboardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <MaterialCommunityIcons name="chart-areaspline" size={20} color={colors.brandPrimary} />
-            <Text style={styles.sectionTitle}>Visual Telemetry & Distributions</Text>
+            <Text style={styles.sectionTitle}>Telemetri Visual & Distribusi</Text>
           </View>
 
           <View style={styles.chartsColumn}>
@@ -494,7 +502,7 @@ export default function AdminDashboardScreen() {
 
           <View style={styles.leaderboardCard}>
             {buyerLeaderboard.length === 0 ? (
-              <Text style={styles.emptyText}>No buyer order data available yet.</Text>
+              <Text style={styles.emptyText}>Belum ada data pesanan pembeli.</Text>
             ) : (
               buyerLeaderboard.map((client, idx) => (
                 <View key={client.buyerId} style={styles.leaderboardRow}>
@@ -504,7 +512,7 @@ export default function AdminDashboardScreen() {
                   <View style={styles.clientInfo}>
                     <Text style={styles.clientName}>{client.buyerName}</Text>
                     <Text style={styles.clientPhone}>
-                      {client.buyerPhone} &bull; {client.orderCount} orders
+                      {client.buyerPhone} &bull; {client.orderCount} pesanan
                     </Text>
                   </View>
                   <View style={styles.clientMetrics}>
@@ -726,6 +734,17 @@ export default function AdminDashboardScreen() {
         booking={selectedBookingForInvestigation}
         cogsPerGram={financialMetrics.averageCostPerGram || 600000}
         onClose={() => setSelectedBookingForInvestigation(null)}
+        onOpenEdit={(b) => setSelectedBookingForEdit(b)}
+      />
+
+      {/* Agent Detail Edit Form Modal */}
+      <AgentDetailEditModal
+        visible={selectedBookingForEdit !== null}
+        booking={selectedBookingForEdit}
+        onClose={() => setSelectedBookingForEdit(null)}
+        onSaved={() => {
+          refreshAllData().catch(() => {});
+        }}
       />
 
       {/* Expandable Speed Dial Floating Action Button (Pinned Bottom-Right) */}
@@ -911,7 +930,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     backgroundColor: colors.warningContainer,
-    borderRadius: radius.md,
+    borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.warning,
@@ -929,8 +948,8 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceSecondary,
   },
   stockCard: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1000,8 +1019,8 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 140,
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1057,8 +1076,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   leaderboardCard: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1118,10 +1137,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
+    minHeight: touchTarget.minHeight,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -1137,8 +1157,11 @@ const styles = StyleSheet.create({
   statusFilterChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: radius.pill,
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
     marginRight: spacing.xs,
@@ -1157,8 +1180,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   tableCard: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: "hidden",
@@ -1167,7 +1190,7 @@ const styles = StyleSheet.create({
   tableHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerHigh,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
@@ -1258,7 +1281,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    minHeight: touchTarget.minHeight,
+    borderRadius: radius.pill,
     ...shadows.sm,
   },
   mgmtBtn: {
@@ -1271,12 +1295,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandPrimary,
   },
   exportBtn: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.brandPrimary,
   },
   exportJsonBtn: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.info,
   },
@@ -1292,6 +1316,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#DC2626",
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
+    minHeight: 34,
     borderRadius: radius.pill,
     ...shadows.sm,
   },

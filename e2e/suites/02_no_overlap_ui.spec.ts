@@ -7,7 +7,7 @@ test.describe('2. Screen Layout & Zero-Overlap UI Verification', () => {
     // 1. Check Login Page
     await page.goto('/login');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('text=Email').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('text=SaltDistribute').first().waitFor({ state: 'visible', timeout: 15000 });
 
     const loginCollisions = await verifyNoOverlappingElements(page);
     expect(loginCollisions.hasCollision).toBe(false);
@@ -15,7 +15,7 @@ test.describe('2. Screen Layout & Zero-Overlap UI Verification', () => {
     // 2. Check Register Page
     await page.goto('/register');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('text=Email').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('text=Daftar').or(page.locator('text=Register')).or(page.locator('text=Nama')).first().waitFor({ state: 'visible', timeout: 15000 });
 
     const registerCollisions = await verifyNoOverlappingElements(page);
     expect(registerCollisions.hasCollision).toBe(false);

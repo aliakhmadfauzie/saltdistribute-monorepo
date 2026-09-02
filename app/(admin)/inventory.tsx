@@ -27,7 +27,7 @@ export default function AdminInventoryScreen() {
   const { inventory, updateInventoryStockStatus, updateBasePrice, restockLogs, isRefreshing, refreshAllData } = useApp();
   const { t } = useI18n();
 
-  const [priceInput, setPriceInput] = useState(inventory.basePricePerGram.toString());
+  const [priceInput, setPriceInput] = useState(((inventory && inventory.basePricePerGram) || 800000).toString());
   const [restockModalVisible, setRestockModalVisible] = useState(false);
 
   useFocusEffect(

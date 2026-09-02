@@ -3,9 +3,7 @@
     "argv": [
       "C:\\Program Files\\nodejs\\node.exe",
       "C:\\Users\\AL_AAF\\Project\\Orrder management spp\\node_modules\\@playwright\\test\\cli.js",
-      "test",
-      "e2e/suites/07_admin_workflow.spec.ts",
-      "--project=Mobile-PWA"
+      "test"
     ],
     "configFile": "C:\\Users\\AL_AAF\\Project\\Orrder management spp\\playwright.config.ts",
     "rootDir": "C:/Users/AL_AAF/Project/Orrder management spp/e2e/suites",
@@ -95,6 +93,1280 @@
   },
   "suites": [
     {
+      "title": "01_text_visibility.spec.ts",
+      "file": "01_text_visibility.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "1. Text Visibility & Legibility Verification",
+          "file": "01_text_visibility.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Auth Screens: all header, form labels, buttons, and helper texts are fully visible and not clipped",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3278,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Text Visibility Audit] 24/24 visible text nodes verified on http://localhost:8082/login\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 17/17 visible text nodes verified on http://localhost:8082/register\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:27.528Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff71163fbe79ac532936-5f66245b7c332e92434d",
+              "file": "01_text_visibility.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "Buyer Screens: product catalogue titles, tier prices, stock badges, and tabs are fully visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6980,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Text Visibility Audit] 177/177 visible text nodes verified on http://localhost:8082/\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 69/69 visible text nodes verified on http://localhost:8082/orders\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 57/57 visible text nodes verified on http://localhost:8082/profile\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:31.059Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff71163fbe79ac532936-5c8ca115fc6b06b0cf99",
+              "file": "01_text_visibility.spec.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Admin Screens: KPI stats, inventory badges, and user tables are fully visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6713,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Text Visibility Audit] 193/193 visible text nodes verified on http://localhost:8082/\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 50/50 visible text nodes verified on http://localhost:8082/inventory\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 66/66 visible text nodes verified on http://localhost:8082/users\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:38.059Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff71163fbe79ac532936-477b995a43812982c079",
+              "file": "01_text_visibility.spec.ts",
+              "line": 61,
+              "column": 7
+            },
+            {
+              "title": "Auth Screens: all header, form labels, buttons, and helper texts are fully visible and not clipped",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2889,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Text Visibility Audit] 24/24 visible text nodes verified on http://localhost:8082/login\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 17/17 visible text nodes verified on http://localhost:8082/register\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:25.357Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff71163fbe79ac532936-8150aabdc6ec9b84338e",
+              "file": "01_text_visibility.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "Buyer Screens: product catalogue titles, tier prices, stock badges, and tabs are fully visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 7101,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Text Visibility Audit] 177/177 visible text nodes verified on http://localhost:8082/\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 69/69 visible text nodes verified on http://localhost:8082/orders\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 57/57 visible text nodes verified on http://localhost:8082/profile\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:28.497Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff71163fbe79ac532936-15cbd10da77a17a6d003",
+              "file": "01_text_visibility.spec.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Admin Screens: KPI stats, inventory badges, and user tables are fully visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10421,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Text Visibility Audit] 193/193 visible text nodes verified on http://localhost:8082/\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 50/50 visible text nodes verified on http://localhost:8082/inventory\n"
+                        },
+                        {
+                          "text": "[Text Visibility Audit] 66/66 visible text nodes verified on http://localhost:8082/users\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:35.620Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ff71163fbe79ac532936-e4cbc23597d263275f3a",
+              "file": "01_text_visibility.spec.ts",
+              "line": 61,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "02_no_overlap_ui.spec.ts",
+      "file": "02_no_overlap_ui.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "2. Screen Layout & Zero-Overlap UI Verification",
+          "file": "02_no_overlap_ui.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Auth Screens: Login & Register forms have no overlapping buttons or inputs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2428,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/login\n"
+                        },
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/register\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:44.798Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dca3ab6a7d9df9ac53e1-c2b25bbeef9161d861c0",
+              "file": "02_no_overlap_ui.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "Buyer Dashboard: Product cards, quantity buttons, and bottom tab navigation have no overlap",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4077,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:47.248Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dca3ab6a7d9df9ac53e1-6fd8193e42f4b672fab6",
+              "file": "02_no_overlap_ui.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "Admin Dashboard: Summary metric cards, action buttons, and navigation bar have no overlap",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4066,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:51.371Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dca3ab6a7d9df9ac53e1-f60a7c7b6caa738100df",
+              "file": "02_no_overlap_ui.spec.ts",
+              "line": 33,
+              "column": 7
+            },
+            {
+              "title": "Auth Screens: Login & Register forms have no overlapping buttons or inputs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5464,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/login\n"
+                        },
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/register\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:46.070Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dca3ab6a7d9df9ac53e1-04675ca66ed0a13834d9",
+              "file": "02_no_overlap_ui.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "Buyer Dashboard: Product cards, quantity buttons, and bottom tab navigation have no overlap",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4135,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:51.555Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dca3ab6a7d9df9ac53e1-ef87456897ce3bc6a407",
+              "file": "02_no_overlap_ui.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "Admin Dashboard: Summary metric cards, action buttons, and navigation bar have no overlap",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4226,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Zero-Overlap Audit Passed] Clean layout with zero colliding elements on http://localhost:8082/\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:55.711Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dca3ab6a7d9df9ac53e1-b716daa0fc6bda3192a4",
+              "file": "02_no_overlap_ui.spec.ts",
+              "line": 33,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "03_gps_location.spec.ts",
+      "file": "03_gps_location.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "3. GPS & Map Verification: Ability to Open and View Maps",
+          "file": "03_gps_location.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Map Picker on Registration: Able to open modal, view interactive map iframe, and confirm location",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3258,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:55.476Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "508f70cf86e663847599-432ca0cc5cf71e722e54",
+              "file": "03_gps_location.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "Delivery Route Map on Buyer Screen: Able to open and see route preview map",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4882,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:28:58.756Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "508f70cf86e663847599-a928c66360b000c98f65",
+              "file": "03_gps_location.spec.ts",
+              "line": 51,
+              "column": 7
+            },
+            {
+              "title": "Fallback Handling: Gracefully opens and renders map with fallback coordinates when GPS is denied",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2561,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:03.659Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "508f70cf86e663847599-21cd38d8861803a0a88f",
+              "file": "03_gps_location.spec.ts",
+              "line": 77,
+              "column": 7
+            },
+            {
+              "title": "Map Picker on Registration: Able to open modal, view interactive map iframe, and confirm location",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3206,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:59.971Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "508f70cf86e663847599-c91d3279ad8a7d261659",
+              "file": "03_gps_location.spec.ts",
+              "line": 6,
+              "column": 7
+            },
+            {
+              "title": "Delivery Route Map on Buyer Screen: Able to open and see route preview map",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5742,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:03.203Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "508f70cf86e663847599-286b0df87a8412ea044f",
+              "file": "03_gps_location.spec.ts",
+              "line": 51,
+              "column": 7
+            },
+            {
+              "title": "Fallback Handling: Gracefully opens and renders map with fallback coordinates when GPS is denied",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3050,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:08.970Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "508f70cf86e663847599-8f2a00de3706db655684",
+              "file": "03_gps_location.spec.ts",
+              "line": 77,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "04_database_persistence.spec.ts",
+      "file": "04_database_persistence.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "4. Real Database & Persistence Validation",
+          "file": "04_database_persistence.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Database snapshot: documents initial users, inventory catalog, and active bookings",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5653,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:06.252Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fabfdd941e11be0ed025-2ab4a1feb2b592c50cdc",
+              "file": "04_database_persistence.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Data Persistence: Modifications persist across browser reloads",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6624,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:11.938Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fabfdd941e11be0ed025-5ce2ee940becbda8bb18",
+              "file": "04_database_persistence.spec.ts",
+              "line": 27,
+              "column": 7
+            },
+            {
+              "title": "Database snapshot: documents initial users, inventory catalog, and active bookings",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5057,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:12.057Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fabfdd941e11be0ed025-f998a955382aa74c19af",
+              "file": "04_database_persistence.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Data Persistence: Modifications persist across browser reloads",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9061,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:17.140Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fabfdd941e11be0ed025-30c8f7eddc6e3bfa426a",
+              "file": "04_database_persistence.spec.ts",
+              "line": 27,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "05_auth_registration_login.spec.ts",
+      "file": "05_auth_registration_login.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "5. Account Creation, DB Documentation & Password Validation",
+          "file": "05_auth_registration_login.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "User Registration: creates account and documents username & password in database",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4256,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:18.610Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-5d42a9d930017e50dcf9",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Wrong Password Rejection: Incorrect password fails login and blocks entry",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2355,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:22.887Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-2ee6d2302d80bdc190f9",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Wrong Username/Email Rejection: Non-existent identifier fails login and blocks entry",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2673,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:25.257Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-1b6c32bd2f81f25069ab",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 72,
+              "column": 7
+            },
+            {
+              "title": "Valid Credentials Login: Logs in successfully and accesses the application",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4270,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:27.947Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-67aaba0a216455daf790",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 86,
+              "column": 7
+            },
+            {
+              "title": "User Registration: creates account and documents username & password in database",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5035,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:26.291Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-b778b07c03488f8ab901",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Wrong Password Rejection: Incorrect password fails login and blocks entry",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2893,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:31.362Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-f658e4bd04c71406058f",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 57,
+              "column": 7
+            },
+            {
+              "title": "Wrong Username/Email Rejection: Non-existent identifier fails login and blocks entry",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2796,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:34.276Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-5ab3f3f007ba29e7ec9b",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 72,
+              "column": 7
+            },
+            {
+              "title": "Valid Credentials Login: Logs in successfully and accesses the application",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5016,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:37.094Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "95f6b0f5ef9daf197264-6c408be493b096b9840c",
+              "file": "05_auth_registration_login.spec.ts",
+              "line": 86,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "06_buyer_workflow.spec.ts",
+      "file": "06_buyer_workflow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "6. Buyer End-to-End Workflow",
+          "file": "06_buyer_workflow.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Complete Order Placement: Browse catalog, choose tier, select delivery and submit order",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5998,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:32.239Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "51495a375f8b071d4f4c-947e2f5163ac528ef045",
+              "file": "06_buyer_workflow.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Complete Order Placement: Browse catalog, choose tier, select delivery and submit order",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6226,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:42.138Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "51495a375f8b071d4f4c-4b6f8e766ff3894317ff",
+              "file": "06_buyer_workflow.spec.ts",
+              "line": 5,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
       "title": "07_admin_workflow.spec.ts",
       "file": "07_admin_workflow.spec.ts",
       "column": 0,
@@ -123,12 +1395,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 19464,
+                      "duration": 4074,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-31T17:56:48.483Z",
+                      "startTime": "2026-09-01T05:29:38.266Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -157,12 +1429,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 19476,
+                      "duration": 4560,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-31T17:57:08.693Z",
+                      "startTime": "2026-09-01T05:29:42.359Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -191,12 +1463,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 22154,
+                      "duration": 4924,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-31T17:57:28.200Z",
+                      "startTime": "2026-09-01T05:29:46.935Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -225,12 +1497,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 14105,
+                      "duration": 5258,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-31T17:57:50.387Z",
+                      "startTime": "2026-09-01T05:29:51.882Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -242,6 +1514,448 @@
               "file": "07_admin_workflow.spec.ts",
               "line": 41,
               "column": 7
+            },
+            {
+              "title": "Dashboard & Metrics: Displays revenue summary, active orders, and inventory overview",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3839,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:48.394Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-888494d375077c2aa19f",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Inventory Management: Lists warehouse stock reserve and restock logs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4291,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:52.251Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-476c61cee6c34ee27403",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 18,
+              "column": 7
+            },
+            {
+              "title": "Customer Directory: Displays registered buyers and their statuses",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4310,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:31:56.557Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-3c7750e2be660fcf65c1",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "Floating Admin Action Button: Opens speed dial overlay and triggers actions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5466,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:32:00.883Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "74199af4dffb0a662062-9762036923a37fc2098f",
+              "file": "07_admin_workflow.spec.ts",
+              "line": 41,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "08_guest_quick_order.spec.ts",
+      "file": "08_guest_quick_order.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "8. Guest Quick Order Form (Streamlined 4-Question Flow)",
+          "file": "08_guest_quick_order.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Guest Buyer can open form from Login screen, fill 4 questions, and place order without registration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2910,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:29:57.168Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b53e2d124b423790b966-a7ac7cc4aaa2c6473225",
+              "file": "08_guest_quick_order.spec.ts",
+              "line": 4,
+              "column": 7
+            },
+            {
+              "title": "Guest Buyer can open form from Login screen, fill 4 questions, and place order without registration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3414,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:32:06.377Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b53e2d124b423790b966-807d0a9d3aedc00f733a",
+              "file": "08_guest_quick_order.spec.ts",
+              "line": 4,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "09_multi_user_collaboration.spec.ts",
+      "file": "09_multi_user_collaboration.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "9. Multi-Customer & Multi-Admin Collaborative Workflows",
+          "file": "09_multi_user_collaboration.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Multi-Customer Order Isolation: Customer A and Customer B have isolated order histories",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5313,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:00.114Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b352a8dc8b93182fc8a0-45dc2afa7173183e9138",
+              "file": "09_multi_user_collaboration.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Multi-Admin Collaborative Management: Admins can view pipeline and collaborate on orders",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11569,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:05.465Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b352a8dc8b93182fc8a0-692b7bd872b8e5ebb7ca",
+              "file": "09_multi_user_collaboration.spec.ts",
+              "line": 32,
+              "column": 7
+            },
+            {
+              "title": "Customer vs Admin Role Perspective & Security Access Control",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-PWA",
+                  "projectName": "Mobile-PWA",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 7000,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:30:17.068Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b352a8dc8b93182fc8a0-dd1faca625316c280b28",
+              "file": "09_multi_user_collaboration.spec.ts",
+              "line": 64,
+              "column": 7
+            },
+            {
+              "title": "Multi-Customer Order Isolation: Customer A and Customer B have isolated order histories",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4975,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:32:09.821Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b352a8dc8b93182fc8a0-671472b405b068271a34",
+              "file": "09_multi_user_collaboration.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Multi-Admin Collaborative Management: Admins can view pipeline and collaborate on orders",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5355,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:32:14.821Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b352a8dc8b93182fc8a0-f8a33b50d065c76452e3",
+              "file": "09_multi_user_collaboration.spec.ts",
+              "line": 32,
+              "column": 7
+            },
+            {
+              "title": "Customer vs Admin Role Perspective & Security Access Control",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile-iPhone",
+                  "projectName": "Mobile-iPhone",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4271,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-01T05:32:20.196Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b352a8dc8b93182fc8a0-00a192dd4205547e3666",
+              "file": "09_multi_user_collaboration.spec.ts",
+              "line": 64,
+              "column": 7
             }
           ]
         }
@@ -250,9 +1964,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-08-31T17:56:44.134Z",
-    "duration": 80885.463,
-    "expected": 4,
+    "startTime": "2026-09-01T05:28:20.238Z",
+    "duration": 245085.126,
+    "expected": 48,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

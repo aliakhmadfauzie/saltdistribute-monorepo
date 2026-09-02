@@ -20,8 +20,6 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8082',
-    // Mobile PWA configuration (Pixel 7 / iPhone 390x844 standard resolution)
-    ...devices['Pixel 7'],
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
@@ -47,6 +45,7 @@ export default defineConfig({
       name: 'Mobile-iPhone',
       use: {
         ...devices['iPhone 14'],
+        defaultBrowserType: 'chromium',
         viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,

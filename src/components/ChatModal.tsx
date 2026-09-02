@@ -31,7 +31,7 @@ interface ChatModalProps {
 }
 
 export default function ChatModal({ visible, booking, onClose, onOrderCompleted }: ChatModalProps) {
-  const { chats, sendMessage, completeBooking, getWhatsAppSellerUrl, refreshAllData } = useApp();
+  const { chats, sendMessage, markCompleted, getWhatsAppSellerUrl, refreshAllData } = useApp();
   const { currentUser } = useAuth();
   const { t } = useI18n();
   const [inputText, setInputText] = useState("");
@@ -51,7 +51,17 @@ export default function ChatModal({ visible, booking, onClose, onOrderCompleted 
     }
   }, [visible, booking?.bookingId]);
 
-  if (!booking || !currentUser) return null;
+  if (!booking) return null;
+
+  const activeSender = currentUser || {
+    userId: booking.buyerId || "guest_buyer",
+    name: booking.buyerName || "Guest Buyer",
+    role: "buyer" as const,
+  };
+
+  const isViewerAdminOrSeller = activeSender.role === "admin" || (activeSender.role as string) === "seller";
+  const counterpartName = isViewerAdminOrSeller ? booking.buyerName : "Admin Penjual Resmi";
+  const counterpartRole = isViewerAdminOrSeller ? "Tenant / Pembeli" : "OFFICIAL";
 
   const localMessages = chats[booking.bookingId] || [];
   // Merge live Firestore messages with local fallback if empty
@@ -79,9 +89,9 @@ export default function ChatModal({ visible, booking, onClose, onOrderCompleted 
 
     sendMessage(
       booking.bookingId,
-      currentUser.userId,
-      currentUser.name,
-      currentUser.role,
+      activeSender.userId,
+      activeSender.name,
+      activeSender.role,
       trimmed || (attachedFile ? `[Attached Document: ${attachedFile.name}]` : ""),
       attachedFile?.uri,
       attachedFile?.name,
@@ -112,10 +122,9 @@ export default function ChatModal({ visible, booking, onClose, onOrderCompleted 
           onPress: async () => {
             setIsCompleting(true);
             try {
-              completeBooking(booking.bookingId);
+              markCompleted(booking.bookingId);
               await updateBookingInFirestore(booking.bookingId, {
                 status: "COMPLETED",
-                completedAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               }).catch(() => {});
               
@@ -135,31 +144,59 @@ export default function ChatModal({ visible, booking, onClose, onOrderCompleted 
     );
   };
 
-  // Dynamic Status Banner Content
+  // Dynamic Status Banner Content - Contextualized by Viewer's Role (Admin/Seller vs Tenant/Buyer)
   const getStatusBannerInfo = () => {
     switch (booking.status) {
       case "PENDING_CONFIRMATION":
         return {
-          text: t("sellerWaitingStatus"),
+          text: isViewerAdminOrSeller
+            ? "Pesanan Baru: Menunggu Konfirmasi & Tanggapan Anda"
+            : "Menunggu Tanggapan & Konfirmasi Penjual...",
           bg: "#FEF3C7",
           color: "#92400E",
           icon: "clock-outline" as const,
         };
       case "AWAITING_PAYMENT":
+        return {
+          text: isViewerAdminOrSeller
+            ? "Menunggu Pembayaran & Bukti Transfer dari Tenant"
+            : "Pesanan Diterima: Silakan Kirim Pembayaran / Bukti Transfer",
+          bg: "#FEF3C7",
+          color: "#B45309",
+          icon: "credit-card-outline" as const,
+        };
       case "PAYMENT_VERIFICATION":
+        return {
+          text: isViewerAdminOrSeller
+            ? "Bukti Transfer Masuk: Menunggu Verifikasi Admin"
+            : "Bukti Transfer Terkirim: Sedang Diverifikasi Penjual",
+          bg: "#E0F2FE",
+          color: "#0369A1",
+          icon: "file-eye-outline" as const,
+        };
       case "CONFIRMED_DELIVERING":
         return {
-          text: t("sellerPreparingStatus"),
+          text: isViewerAdminOrSeller
+            ? "Pembayaran Sah: Pesanan Sedang Dikirim ke Tenant"
+            : "Pembayaran Terverifikasi & Pesanan Sedang Dikirim!",
           bg: "#DCFCE7",
           color: "#15803D",
           icon: "truck-delivery-outline" as const,
         };
       case "COMPLETED":
         return {
-          text: t("orderCompletedArchived"),
-          bg: "#E0F2FE",
-          color: "#0369A1",
+          text: "Pesanan Selesai & Riwayat Percakapan Telah Diarsipkan",
+          bg: "#F3F4F6",
+          color: "#4B5563",
           icon: "check-decagram-outline" as const,
+        };
+      case "REJECTED_BY_ADMIN":
+      case "CANCELLED_UNPAID":
+        return {
+          text: "Pesanan Dibatalkan / Ditutup",
+          bg: "#FEE2E2",
+          color: "#B91C1C",
+          icon: "close-octagon-outline" as const,
         };
       default:
         return {
@@ -185,21 +222,41 @@ export default function ChatModal({ visible, booking, onClose, onOrderCompleted 
             <View style={styles.dragHandle} />
           </View>
 
-          {/* Header with Seller Identity & WhatsApp Call Button */}
+          {/* Header with Counterpart Identity & WhatsApp Call Button */}
           <View style={styles.header}>
-            <View style={styles.sellerAvatarBox}>
-              <MaterialCommunityIcons name="storefront-outline" size={22} color="#FFFFFF" />
+            <View style={[styles.sellerAvatarBox, isViewerAdminOrSeller && { backgroundColor: "#0284C7" }]}>
+              <MaterialCommunityIcons
+                name={isViewerAdminOrSeller ? "account-tie" : "storefront-outline"}
+                size={22}
+                color="#FFFFFF"
+              />
               <View style={styles.onlineDot} />
             </View>
 
             <View style={styles.headerInfo}>
               <View style={styles.headerTitleRow}>
                 <Text style={styles.sellerName} numberOfLines={1}>
-                  Admin Penjual Resmi
+                  {counterpartName}
                 </Text>
-                <View style={styles.verifiedPill}>
-                  <MaterialCommunityIcons name="shield-check" size={12} color="#15803D" />
-                  <Text style={styles.verifiedText}>OFFICIAL</Text>
+                <View
+                  style={[
+                    styles.verifiedPill,
+                    isViewerAdminOrSeller && { backgroundColor: "#E0F2FE" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={isViewerAdminOrSeller ? "account-circle" : "shield-check"}
+                    size={12}
+                    color={isViewerAdminOrSeller ? "#0369A1" : "#15803D"}
+                  />
+                  <Text
+                    style={[
+                      styles.verifiedText,
+                      isViewerAdminOrSeller && { color: "#0369A1" },
+                    ]}
+                  >
+                    {counterpartRole}
+                  </Text>
                 </View>
               </View>
               <Text style={styles.subtitle}>
@@ -293,14 +350,19 @@ export default function ChatModal({ visible, booking, onClose, onOrderCompleted 
               </View>
             ) : (
               messages.map((msg) => {
-                const isMe = msg.senderId === currentUser.userId;
+                const isMe =
+                  msg.senderId === activeSender.userId ||
+                  (isViewerAdminOrSeller && (msg.senderRole === "admin" || (msg.senderRole as string) === "seller")) ||
+                  (!isViewerAdminOrSeller && msg.senderRole === "buyer");
                 return (
                   <View
                     key={msg.id}
                     style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}
                   >
                     <Text style={[styles.senderLabel, isMe ? styles.mySender : styles.theirSender]}>
-                      {msg.senderName} ({msg.senderRole.toUpperCase()})
+                      {isMe
+                        ? `Anda (${activeSender.role.toUpperCase()})`
+                        : `${msg.senderName} (${msg.senderRole.toUpperCase()})`}
                     </Text>
 
                     {/* Render message text */}

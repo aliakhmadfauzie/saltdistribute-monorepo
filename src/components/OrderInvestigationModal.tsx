@@ -19,6 +19,7 @@ interface OrderInvestigationModalProps {
   cogsPerGram?: number;
   onClose: () => void;
   onUpdateStatus?: (bookingId: string, status: any) => void;
+  onOpenEdit?: (booking: Booking) => void;
 }
 
 export default function OrderInvestigationModal({
@@ -27,6 +28,7 @@ export default function OrderInvestigationModal({
   cogsPerGram = 600000,
   onClose,
   onUpdateStatus,
+  onOpenEdit,
 }: OrderInvestigationModalProps) {
   const { t } = useI18n();
 
@@ -72,15 +74,15 @@ export default function OrderInvestigationModal({
             {/* Status & Timing Banner */}
             <View style={styles.statusBanner}>
               <View style={styles.statusRow}>
-                <Text style={styles.statusLabel}>Lifecycle Status</Text>
+                <Text style={styles.statusLabel}>Status Siklus Pesanan</Text>
                 <View style={styles.statusBadge}>
-                  <Text style={styles.statusBadgeText}>{booking.status}</Text>
+                  <Text style={styles.statusBadgeText}>{t(`status_${booking.status}` as any) || booking.status}</Text>
                 </View>
               </View>
               <View style={styles.statusRow}>
-                <Text style={styles.timestampLabel}>Placed On</Text>
+                <Text style={styles.timestampLabel}>Waktu Pemesanan</Text>
                 <Text style={styles.timestampValue}>
-                  {new Date(booking.createdAt).toLocaleString()}
+                  {new Date(booking.createdAt).toLocaleString("id-ID")}
                 </Text>
               </View>
             </View>
@@ -94,14 +96,14 @@ export default function OrderInvestigationModal({
 
               <View style={styles.calcGrid}>
                 <View style={styles.calcRow}>
-                  <Text style={styles.calcLabel}>Package Volume</Text>
+                  <Text style={styles.calcLabel}>Volume Kemasan</Text>
                   <Text style={styles.calcValueBold}>
                     {booking.packageLabel} ({formatGrams(booking.quantityGram)})
                   </Text>
                 </View>
 
                 <View style={styles.calcRow}>
-                  <Text style={styles.calcLabel}>Base Price per Gram</Text>
+                  <Text style={styles.calcLabel}>Harga Dasar per Gram</Text>
                   <Text style={styles.calcValue}>{formatIDR(booking.pricePerGram)} / g</Text>
                 </View>
 
@@ -112,7 +114,7 @@ export default function OrderInvestigationModal({
 
                 {booking.discountAmount > 0 && (
                   <View style={styles.calcRow}>
-                    <Text style={[styles.calcLabel, { color: colors.success }]}>Volume Discount</Text>
+                    <Text style={[styles.calcLabel, { color: colors.success }]}>Diskon Volume</Text>
                     <Text style={[styles.calcValue, { color: colors.success }]}>
                       -{formatIDR(booking.discountAmount)}
                     </Text>
@@ -120,12 +122,12 @@ export default function OrderInvestigationModal({
                 )}
 
                 <View style={styles.calcRow}>
-                  <Text style={styles.calcLabel}>Fulfillment ({booking.deliveryType})</Text>
+                  <Text style={styles.calcLabel}>Pengiriman ({booking.deliveryType === "COD" ? "Titik COD" : "Antar"})</Text>
                   <Text style={styles.calcValue}>+{formatIDR(booking.deliveryFee)}</Text>
                 </View>
 
                 <View style={[styles.calcRow, styles.totalDivider]}>
-                  <Text style={styles.grandTotalLabel}>Grand Total (Billed)</Text>
+                  <Text style={styles.grandTotalLabel}>Total Tagihan</Text>
                   <Text style={styles.grandTotalValue}>{formatIDR(booking.grandTotal)}</Text>
                 </View>
               </View>
@@ -133,12 +135,12 @@ export default function OrderInvestigationModal({
               {/* Profit & Margin Gauge Box */}
               <View style={styles.profitBox}>
                 <View style={styles.profitColumn}>
-                  <Text style={styles.profitBoxLabel}>Est. COGS Expense</Text>
+                  <Text style={styles.profitBoxLabel}>Estimasi HPP</Text>
                   <Text style={styles.profitBoxVal}>{formatIDR(estimatedCOGS)}</Text>
                 </View>
                 <View style={styles.profitDivider} />
                 <View style={styles.profitColumn}>
-                  <Text style={styles.profitBoxLabel}>Est. Net Profit</Text>
+                  <Text style={styles.profitBoxLabel}>Laba Bersih</Text>
                   <Text style={[styles.profitBoxVal, { color: colors.success }]}>
                     {formatIDR(estimatedGrossProfit)}
                   </Text>
@@ -162,22 +164,22 @@ export default function OrderInvestigationModal({
 
               <View style={styles.buyerDetails}>
                 <View style={styles.buyerDetailRow}>
-                  <Text style={styles.buyerLabel}>Contact / PIC:</Text>
+                  <Text style={styles.buyerLabel}>Kontak / Pemesan:</Text>
                   <Text style={styles.buyerValue}>{booking.buyerName}</Text>
                 </View>
                 <View style={styles.buyerDetailRow}>
-                  <Text style={styles.buyerLabel}>Phone / WhatsApp:</Text>
+                  <Text style={styles.buyerLabel}>WhatsApp / Telepon:</Text>
                   <Text style={styles.buyerValue}>{booking.buyerPhone}</Text>
                 </View>
                 <View style={styles.buyerDetailRow}>
-                  <Text style={styles.buyerLabel}>Delivery Destination:</Text>
+                  <Text style={styles.buyerLabel}>Tujuan Pengiriman:</Text>
                   <Text style={styles.buyerValue}>
-                    {booking.deliveryAddress || booking.meetingPointName || "Warehouse Pickup"}
+                    {booking.deliveryAddress || booking.meetingPointName || "Ambil di Gudang"}
                   </Text>
                 </View>
                 {booking.notes ? (
                   <View style={styles.buyerDetailRow}>
-                    <Text style={styles.buyerLabel}>Order Notes:</Text>
+                    <Text style={styles.buyerLabel}>Catatan Pesanan:</Text>
                     <Text style={styles.buyerValue}>{booking.notes}</Text>
                   </View>
                 ) : null}
@@ -188,23 +190,23 @@ export default function OrderInvestigationModal({
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <MaterialCommunityIcons name="receipt-text-check-outline" size={18} color={colors.brandPrimary} />
-                <Text style={styles.sectionTitle}>Payment Receipt Verification</Text>
+                <Text style={styles.sectionTitle}>Verifikasi Bukti Pembayaran</Text>
               </View>
 
               {booking.paymentProofUrl ? (
                 <View style={styles.proofBox}>
                   <MaterialCommunityIcons name="file-check" size={24} color={colors.success} />
                   <View style={styles.proofInfo}>
-                    <Text style={styles.proofTitle}>Receipt Attached</Text>
+                    <Text style={styles.proofTitle}>Bukti Terlampir</Text>
                     <Text style={styles.proofSub}>
-                      Uploaded at: {booking.paymentUploadedAt || "Recorded in database"}
+                      Waktu Unggah: {booking.paymentUploadedAt || "Tercatat di database"}
                     </Text>
                   </View>
                 </View>
               ) : (
                 <View style={styles.proofEmptyBox}>
                   <MaterialCommunityIcons name="file-question-outline" size={20} color={colors.muted} />
-                  <Text style={styles.proofEmptyText}>No bank transfer proof uploaded yet</Text>
+                  <Text style={styles.proofEmptyText}>Belum ada bukti transfer yang diunggah</Text>
                 </View>
               )}
             </View>
@@ -212,11 +214,26 @@ export default function OrderInvestigationModal({
 
           {/* Footer Action Controls */}
           <View style={styles.footer}>
+            {onOpenEdit ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ubah Rincian Formulir Pesanan"
+                style={styles.editBtn}
+                onPress={() => {
+                  onClose();
+                  onOpenEdit(booking);
+                }}
+              >
+                <MaterialCommunityIcons name="file-document-edit-outline" size={18} color="#0F3D5E" />
+                <Text style={styles.editBtnText}>Ubah Formulir</Text>
+              </Pressable>
+            ) : null}
+
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
               onPress={onClose}
-              style={styles.dismissBtn}
+              style={[styles.dismissBtn, onOpenEdit ? { flex: 1 } : null]}
             >
               <Text style={styles.dismissBtnText}>{t("close")}</Text>
             </Pressable>
@@ -469,6 +486,26 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+  },
+  editBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.md,
+  },
+  editBtnText: {
+    fontSize: type.sm,
+    fontWeight: "800",
+    color: "#0F3D5E",
   },
   dismissBtn: {
     backgroundColor: colors.brandPrimary,

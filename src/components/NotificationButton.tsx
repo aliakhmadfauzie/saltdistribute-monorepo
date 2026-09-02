@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, shadows } from "../theme";
+import { useAuth } from "../context/AuthContext";
 import {
   subscribeNotificationHistory,
   getNotificationHistory,
@@ -18,16 +19,17 @@ export default function NotificationButton({
   tintColor = "#FFFFFF",
   badgeBgColor = "#EF4444",
 }: NotificationButtonProps) {
+  const { currentUser } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<AppNotificationPayload[]>([]);
 
   useEffect(() => {
-    getNotificationHistory().then(setNotifications);
-    const unsub = subscribeNotificationHistory((updated) => {
-      setNotifications(updated);
+    getNotificationHistory(currentUser?.userId, currentUser?.role).then(setNotifications);
+    const unsub = subscribeNotificationHistory(() => {
+      getNotificationHistory(currentUser?.userId, currentUser?.role).then(setNotifications);
     });
     return () => unsub();
-  }, []);
+  }, [currentUser?.userId, currentUser?.role]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 

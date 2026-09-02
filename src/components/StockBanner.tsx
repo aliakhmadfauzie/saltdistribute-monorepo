@@ -1,13 +1,14 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useApp, formatGrams } from "../api";
 import { useI18n } from "../i18n";
-import { colors, radius, spacing, type, shadows } from "../theme";
+import { colors, radius, spacing, type, shadows, glass } from "../theme";
 
 export default function StockBanner() {
   const { inventory } = useApp();
   const { t } = useI18n();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const isMasterEnabled = inventory.isStockAvailable;
   const currentGrams = inventory.availableQuantityGram;
@@ -19,6 +20,28 @@ export default function StockBanner() {
     // Under 5 Tons
     stockStatus = "LOW_STOCK";
   }
+
+  // Pulsing live indicator
+  useEffect(() => {
+    if (stockStatus !== "OUT_OF_STOCK") {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.35,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+  }, [stockStatus, pulseAnim]);
 
   const getStatusConfig = () => {
     switch (stockStatus) {
@@ -63,7 +86,23 @@ export default function StockBanner() {
     >
       <View style={styles.topRow}>
         <View style={[styles.badge, { backgroundColor: statusConfig.badgeBg }]}>
-          <View style={[styles.dot, { backgroundColor: statusConfig.dotColor }]} />
+          <Animated.View
+            style={[
+              styles.dot,
+              {
+                backgroundColor: statusConfig.dotColor,
+                opacity: stockStatus === "OUT_OF_STOCK" ? 1 : pulseAnim,
+                transform: [
+                  {
+                    scale: stockStatus === "OUT_OF_STOCK" ? 1 : pulseAnim.interpolate({
+                      inputRange: [0.35, 1],
+                      outputRange: [0.85, 1.15],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
           <Text style={[styles.badgeText, { color: statusConfig.textColor }]}>
             {statusConfig.label}
           </Text>
@@ -113,11 +152,11 @@ export default function StockBanner() {
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: glass.card.backgroundColor,
     borderRadius: radius.md,
     padding: spacing.md + 2,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: glass.card.borderColor,
     gap: spacing.sm + 2,
     ...shadows.sm,
   },
@@ -199,3 +238,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+

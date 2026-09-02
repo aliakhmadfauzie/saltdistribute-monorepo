@@ -34,6 +34,8 @@ import {
   updateBookingInFirestore,
   sendChatMessageToFirestore,
   uploadReceiptToFirebaseStorage,
+  purgeExpiredNotificationsFromFirestore,
+  purgeExpiredChatsFromFirestore,
 } from "../services/firestoreService";
 import {
   notifyOrderCreated,
@@ -367,30 +369,30 @@ const AppContext = createContext<AppContextType>({
   chats: INITIAL_CHATS,
   activeGuestBooking: null,
   isRefreshing: false,
-  refreshAllData: async () => {},
-  updateInventoryStockStatus: () => {},
-  updateBasePrice: () => {},
-  updateInventoryDetails: async () => {},
-  updateStoreSettings: async () => {},
-  updateUnitTiers: async () => {},
-  updateDeliveryZones: async () => {},
-  updateMeetingPoints: async () => {},
-  resetToDemoDefaults: async () => {},
+  refreshAllData: async () => { },
+  updateInventoryStockStatus: () => { },
+  updateBasePrice: () => { },
+  updateInventoryDetails: async () => { },
+  updateStoreSettings: async () => { },
+  updateUnitTiers: async () => { },
+  updateDeliveryZones: async () => { },
+  updateMeetingPoints: async () => { },
+  resetToDemoDefaults: async () => { },
   exportDatabaseBackup: () => "",
   importDatabaseBackup: async () => false,
-  addRestockBatch: () => {},
+  addRestockBatch: () => { },
   createBooking: async () => { throw new Error("Unimplemented"); },
   createGuestBooking: async () => { throw new Error("Unimplemented"); },
-  acceptBooking: () => {},
-  rejectBooking: () => {},
+  acceptBooking: () => { },
+  rejectBooking: () => { },
   uploadPaymentProof: async () => "",
-  verifyPayment: () => {},
-  markCompleted: () => {},
-  sendMessage: () => {},
-  updateBuyerLiveLocation: async () => {},
-  toggleLocationSharing: async () => {},
+  verifyPayment: () => { },
+  markCompleted: () => { },
+  sendMessage: () => { },
+  updateBuyerLiveLocation: async () => { },
+  toggleLocationSharing: async () => { },
   getWhatsAppSellerUrl: () => "",
-  clearGuestSession: async () => {},
+  clearGuestSession: async () => { },
   financialMetrics: { totalRevenue: 0, totalCOGS: 0, grossProfit: 0, completedCount: 0, activeCount: 0 },
   exportSalesCSV: () => "",
 });
@@ -473,7 +475,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             status: "CANCELLED_UNPAID",
             rejectionReason: "Order auto-expired after 24h inactivity without payment proof.",
             updatedAt: new Date().toISOString(),
-          }).catch(() => {});
+          }).catch(() => { });
           return updatedB;
         }
       }
@@ -531,12 +533,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (found && found.status !== "COMPLETED" && found.status !== "CANCELLED_UNPAID" && found.dataPurgeStatus !== "PURGED") {
             setActiveGuestBooking(found);
           } else {
-            AsyncStorage.removeItem(GUEST_SESSION_STORAGE_KEY).catch(() => {});
+            AsyncStorage.removeItem(GUEST_SESSION_STORAGE_KEY).catch(() => { });
           }
         }
 
         // Run Lazy Expiration System (Zero-Cost Architectural Pattern 2.1)
         runLazyExpirationCheck(loadedBookings, loadedInventory);
+
+        // Auto-Purge: Clean up 24h expired notifications and 30d expired chats silently
+        purgeExpiredNotificationsFromFirestore(24).catch(() => {});
+        const bookingIds = loadedBookings.map((b) => b.bookingId);
+        if (bookingIds.length > 0) {
+          purgeExpiredChatsFromFirestore(bookingIds, 30).catch(() => {});
+        }
       } catch (e) {
         console.warn("Failed to load app state", e);
       }
@@ -547,21 +556,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubInv = subscribeToInventory((remoteInv) => {
       if (remoteInv) {
         setInventory(remoteInv);
-        AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(remoteInv)).catch(() => {});
+        AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(remoteInv)).catch(() => { });
       }
     });
 
     const unsubSettings = subscribeToStoreSettings((remoteSettings) => {
       if (remoteSettings) {
         setStoreSettings(remoteSettings);
-        AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(remoteSettings)).catch(() => {});
+        AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(remoteSettings)).catch(() => { });
       }
     });
 
     const unsubMPs = subscribeToMeetingPoints((remoteMPs) => {
       if (remoteMPs && remoteMPs.length > 0) {
         setMeetingPoints(remoteMPs);
-        AsyncStorage.setItem(MEETING_POINTS_STORAGE_KEY, JSON.stringify(remoteMPs)).catch(() => {});
+        AsyncStorage.setItem(MEETING_POINTS_STORAGE_KEY, JSON.stringify(remoteMPs)).catch(() => { });
       }
     });
 
@@ -577,7 +586,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           }
           merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(merged)).catch(() => {});
+          AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(merged)).catch(() => { });
           return merged;
         });
       }
@@ -586,7 +595,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubRestocks = subscribeToRestockLogs((remoteLogs) => {
       if (remoteLogs && remoteLogs.length > 0) {
         setRestockLogs(remoteLogs);
-        AsyncStorage.setItem(RESTOCK_STORAGE_KEY, JSON.stringify(remoteLogs)).catch(() => {});
+        AsyncStorage.setItem(RESTOCK_STORAGE_KEY, JSON.stringify(remoteLogs)).catch(() => { });
       }
     });
 
@@ -615,15 +624,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (remoteInv) {
         setInventory(remoteInv);
-        AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(remoteInv)).catch(() => {});
+        AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(remoteInv)).catch(() => { });
       }
       if (remoteSettings) {
         setStoreSettings(remoteSettings);
-        AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(remoteSettings)).catch(() => {});
+        AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(remoteSettings)).catch(() => { });
       }
       if (remoteMPs && remoteMPs.length > 0) {
         setMeetingPoints(remoteMPs);
-        AsyncStorage.setItem(MEETING_POINTS_STORAGE_KEY, JSON.stringify(remoteMPs)).catch(() => {});
+        AsyncStorage.setItem(MEETING_POINTS_STORAGE_KEY, JSON.stringify(remoteMPs)).catch(() => { });
       }
       if (remoteBookings && remoteBookings.length > 0) {
         setBookings((prev) => {
@@ -636,14 +645,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           }
           merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(merged)).catch(() => {});
+          AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(merged)).catch(() => { });
           return merged;
         });
         runLazyExpirationCheck(remoteBookings, remoteInv || inventory);
       }
       if (remoteRestocks && remoteRestocks.length > 0) {
         setRestockLogs(remoteRestocks);
-        AsyncStorage.setItem(RESTOCK_STORAGE_KEY, JSON.stringify(remoteRestocks)).catch(() => {});
+        AsyncStorage.setItem(RESTOCK_STORAGE_KEY, JSON.stringify(remoteRestocks)).catch(() => { });
       }
     } catch (err) {
       console.warn("[AppContext] Manual refresh warning:", err);
@@ -813,12 +822,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: "PENDING_CONFIRMATION",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isGuest: false,
+      isQuickOrder: false,
+      orderType: "STANDARD_MEMBER_ORDER",
     };
 
     // Update local state and persistent storage immediately
     setBookings((prev) => {
       const updated = [newBooking, ...prev.filter((b) => b.bookingId !== newBooking.bookingId)];
-      AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated)).catch(() => { });
       return updated;
     });
 
@@ -829,7 +841,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn("[AppContext] Firestore save booking error:", err);
     }
 
-    notifyOrderCreated(newBooking.bookingId, newBooking.buyerName, newBooking.quantityGram, true);
+    notifyOrderCreated(newBooking.bookingId, newBooking.buyerName, newBooking.quantityGram, true, newBooking.buyerId);
 
     const newStock = Math.max(0, inventory.availableQuantityGram - params.tier.quantityGram);
     const updatedInv = {
@@ -894,6 +906,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: new Date().toISOString(),
       isGuest: true,
       isTemporary: true,
+      isQuickOrder: true,
+      orderType: "QUICK_ORDER",
       purchaseMode: input.purchaseMode,
       targetAmountIdr: subtotal,
       guestAccessKey,
@@ -903,17 +917,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Update local state and persistent storage immediately
     setBookings((prev) => {
       const updated = [newBooking, ...prev.filter((b) => b.bookingId !== newBooking.bookingId)];
-      AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      AsyncStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updated)).catch(() => { });
       return updated;
     });
 
     try {
       await saveBookingToFirestore(newBooking);
+      console.log("[AppContext] Guest booking committed to Cloud Firestore:", newBooking.bookingId);
     } catch (err) {
-      console.warn("[AppContext] Firestore save guest booking error:", err);
+      console.error("[AppContext] Firestore save guest booking error:", err);
     }
 
-    notifyOrderCreated(newBooking.bookingId, newBooking.buyerName, newBooking.quantityGram, false);
+    notifyOrderCreated(newBooking.bookingId, newBooking.buyerName, newBooking.quantityGram, false, newBooking.buyerId);
 
     const newStock = Math.max(0, inventory.availableQuantityGram - input.quantityGram);
     const updatedInv = {
@@ -922,7 +937,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isStockAvailable: newStock > 0,
       updatedAt: new Date().toISOString(),
     };
-    saveInventory(updatedInv);
+    await saveInventory(updatedInv);
 
     await AsyncStorage.setItem(
       GUEST_SESSION_STORAGE_KEY,
@@ -934,6 +949,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const acceptBooking = (bookingId: string) => {
+    const target = bookings.find((b) => b.bookingId === bookingId);
     const updated = bookings.map((b) =>
       b.bookingId === bookingId
         ? { ...b, status: "AWAITING_PAYMENT" as BookingStatus, updatedAt: new Date().toISOString() }
@@ -943,8 +959,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateBookingInFirestore(bookingId, {
       status: "AWAITING_PAYMENT",
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
-    notifyOrderStatusChanged(bookingId, "AWAITING_PAYMENT");
+    }).catch(() => { });
+    notifyOrderStatusChanged(bookingId, "AWAITING_PAYMENT", target?.buyerId, target?.buyerName);
   };
 
   const rejectBooking = (bookingId: string, reason: string) => {
@@ -952,11 +968,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = bookings.map((b) =>
       b.bookingId === bookingId
         ? {
-            ...b,
-            status: "REJECTED_BY_ADMIN" as BookingStatus,
-            rejectionReason: reason,
-            updatedAt: new Date().toISOString(),
-          }
+          ...b,
+          status: "REJECTED_BY_ADMIN" as BookingStatus,
+          rejectionReason: reason,
+          updatedAt: new Date().toISOString(),
+        }
         : b
     );
     saveBookings(updated);
@@ -964,8 +980,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: "REJECTED_BY_ADMIN",
       rejectionReason: reason,
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
-    notifyOrderStatusChanged(bookingId, "REJECTED_BY_ADMIN");
+    }).catch(() => { });
+    notifyOrderStatusChanged(bookingId, "REJECTED_BY_ADMIN", target?.buyerId, target?.buyerName);
 
     if (target) {
       const restored = inventory.availableQuantityGram + target.quantityGram;
@@ -986,16 +1002,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn("[AppContext] Firebase Storage upload fallback:", e);
     }
 
+    const target = bookings.find((b) => b.bookingId === bookingId);
     const updated = bookings.map((b) =>
       b.bookingId === bookingId
         ? {
-            ...b,
-            paymentProofUrl: finalUrl,
-            paymentProofName: proofName || "proof.jpg",
-            paymentUploadedAt: new Date().toISOString(),
-            status: "PAYMENT_VERIFICATION" as BookingStatus,
-            updatedAt: new Date().toISOString(),
-          }
+          ...b,
+          paymentProofUrl: finalUrl,
+          paymentProofName: proofName || "proof.jpg",
+          paymentUploadedAt: new Date().toISOString(),
+          status: "PAYMENT_VERIFICATION" as BookingStatus,
+          updatedAt: new Date().toISOString(),
+        }
         : b
     );
     await saveBookings(updated);
@@ -1006,9 +1023,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       paymentUploadedAt: new Date().toISOString(),
       status: "PAYMENT_VERIFICATION",
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch(() => { });
 
-    notifyOrderStatusChanged(bookingId, "PAYMENT_VERIFICATION");
+    notifyOrderStatusChanged(bookingId, "PAYMENT_VERIFICATION", target?.buyerId, target?.buyerName);
 
     if (activeGuestBooking?.bookingId === bookingId) {
       setActiveGuestBooking({
@@ -1025,6 +1042,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const verifyPayment = (bookingId: string) => {
+    const target = bookings.find((b) => b.bookingId === bookingId);
     const updated = bookings.map((b) =>
       b.bookingId === bookingId
         ? { ...b, status: "CONFIRMED_DELIVERING" as BookingStatus, updatedAt: new Date().toISOString() }
@@ -1034,11 +1052,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateBookingInFirestore(bookingId, {
       status: "CONFIRMED_DELIVERING",
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
-    notifyOrderStatusChanged(bookingId, "CONFIRMED_DELIVERING");
+    }).catch(() => { });
+    notifyOrderStatusChanged(bookingId, "CONFIRMED_DELIVERING", target?.buyerId, target?.buyerName);
   };
 
   const markCompleted = (bookingId: string) => {
+    const target = bookings.find((b) => b.bookingId === bookingId);
     const updated = bookings.map((b) => {
       if (b.bookingId !== bookingId) return b;
       if (b.isGuest) {
@@ -1062,12 +1081,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateBookingInFirestore(bookingId, {
       status: "COMPLETED",
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch(() => { });
 
-    notifyOrderStatusChanged(bookingId, "COMPLETED");
+    notifyOrderStatusChanged(bookingId, "COMPLETED", target?.buyerId, target?.buyerName);
 
     if (activeGuestBooking?.bookingId === bookingId) {
-      AsyncStorage.removeItem(GUEST_SESSION_STORAGE_KEY).catch(() => {});
+      AsyncStorage.removeItem(GUEST_SESSION_STORAGE_KEY).catch(() => { });
       setActiveGuestBooking(null);
     }
   };
@@ -1134,18 +1153,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn("[AppContext] Firestore send chat message warning:", err);
     });
 
-    notifyNewChatMessage(bookingId, senderName, text);
+    const targetBooking = bookings.find((b) => b.bookingId === bookingId);
+    const recipientUserId = senderRole === "admin" ? targetBooking?.buyerId : undefined;
+    const recipientRole: "admin" | "buyer" = senderRole === "admin" ? "buyer" : "admin";
+    notifyNewChatMessage(bookingId, senderName, text, recipientUserId, recipientRole);
   };
 
   const updateBuyerLiveLocation = async (bookingId: string, location: LiveBuyerLocation) => {
     const updated = bookings.map((b) =>
       b.bookingId === bookingId
         ? {
-            ...b,
-            liveLocation: location,
-            isLocationSharingEnabled: location.isSharing,
-            updatedAt: new Date().toISOString(),
-          }
+          ...b,
+          liveLocation: location,
+          isLocationSharingEnabled: location.isSharing,
+          updatedAt: new Date().toISOString(),
+        }
         : b
     );
     await saveBookings(updated);
@@ -1154,18 +1176,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       liveLocation: location,
       isLocationSharingEnabled: location.isSharing,
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch(() => { });
   };
 
   const toggleLocationSharing = async (bookingId: string, enabled: boolean) => {
     const updated = bookings.map((b) =>
       b.bookingId === bookingId
         ? {
-            ...b,
-            isLocationSharingEnabled: enabled,
-            liveLocation: b.liveLocation ? { ...b.liveLocation, isSharing: enabled } : undefined,
-            updatedAt: new Date().toISOString(),
-          }
+          ...b,
+          isLocationSharingEnabled: enabled,
+          liveLocation: b.liveLocation ? { ...b.liveLocation, isSharing: enabled } : undefined,
+          updatedAt: new Date().toISOString(),
+        }
         : b
     );
     await saveBookings(updated);
@@ -1173,7 +1195,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateBookingInFirestore(bookingId, {
       isLocationSharingEnabled: enabled,
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch(() => { });
   };
 
   // Financial Metrics

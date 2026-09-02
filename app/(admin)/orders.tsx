@@ -20,17 +20,20 @@ import { useApp } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import BookingCard from "../../src/components/BookingCard";
 import ChatModal from "../../src/components/ChatModal";
+import AgentDetailEditModal from "../../src/components/AgentDetailEditModal";
 import LangToggle from "../../src/components/LangToggle";
 import AppLogo from "../../src/components/AppLogo";
+import InteractivePressable from "../../src/components/InteractivePressable";
+import { SkeletonOrderCard } from "../../src/components/SkeletonLoader";
 import { Booking } from "../../src/types";
 
 type AdminPipelineTab = "PENDING" | "AWAITING" | "VERIFYING" | "DELIVERING" | "HISTORY";
 
 const REJECTION_PRESETS = [
-  "Stock temporarily unavailable",
-  "Outside standard delivery zone",
-  "Unable to fulfill requested schedule",
-  "Payment proof unverifiable / mismatch",
+  "Stok sedang tidak tersedia",
+  "Di luar area jangkauan pengiriman standar",
+  "Tidak dapat memenuhi jadwal yang diminta",
+  "Bukti pembayaran tidak valid / nominal tidak cocok",
 ];
 
 export default function AdminOrdersScreen() {
@@ -40,6 +43,7 @@ export default function AdminOrdersScreen() {
 
   const [activeTab, setActiveTab] = useState<AdminPipelineTab>("PENDING");
   const [selectedChatBooking, setSelectedChatBooking] = useState<Booking | null>(null);
+  const [selectedEditBooking, setSelectedEditBooking] = useState<Booking | null>(null);
   const [lastRefreshedTime, setLastRefreshedTime] = useState<string>(
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
   );
@@ -127,10 +131,10 @@ export default function AdminOrdersScreen() {
             </View>
           </View>
           <View style={styles.headerActions}>
-            <Pressable
+            <InteractivePressable
               accessibilityRole="button"
               accessibilityLabel="Refresh latest orders from Cloud Firestore"
-              style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.8 }]}
+              style={styles.refreshBtn}
               onPress={handleManualRefresh}
               disabled={isRefreshing}
             >
@@ -142,7 +146,7 @@ export default function AdminOrdersScreen() {
               <Text style={styles.refreshBtnText}>
                 {isRefreshing ? "..." : "Refresh"}
               </Text>
-            </Pressable>
+            </InteractivePressable>
             <LangToggle />
           </View>
         </View>
@@ -160,7 +164,7 @@ export default function AdminOrdersScreen() {
             onPress={() => setActiveTab("PENDING")}
           >
             <Text style={[styles.tabText, activeTab === "PENDING" && styles.tabTextActive]}>
-              Review ({pendingList.length})
+              Menunggu ({pendingList.length})
             </Text>
           </Pressable>
 
@@ -171,7 +175,7 @@ export default function AdminOrdersScreen() {
             onPress={() => setActiveTab("AWAITING")}
           >
             <Text style={[styles.tabText, activeTab === "AWAITING" && styles.tabTextActive]}>
-              Awaiting Pay ({awaitingList.length})
+              Tagihan DP ({awaitingList.length})
             </Text>
           </Pressable>
 
@@ -182,7 +186,7 @@ export default function AdminOrdersScreen() {
             onPress={() => setActiveTab("VERIFYING")}
           >
             <Text style={[styles.tabText, activeTab === "VERIFYING" && styles.tabTextActive]}>
-              Verify Proof ({verifyingList.length})
+              Verifikasi Bukti ({verifyingList.length})
             </Text>
           </Pressable>
 
@@ -193,7 +197,7 @@ export default function AdminOrdersScreen() {
             onPress={() => setActiveTab("DELIVERING")}
           >
             <Text style={[styles.tabText, activeTab === "DELIVERING" && styles.tabTextActive]}>
-              Delivering ({deliveringList.length})
+              Pengiriman ({deliveringList.length})
             </Text>
           </Pressable>
 
@@ -204,7 +208,7 @@ export default function AdminOrdersScreen() {
             onPress={() => setActiveTab("HISTORY")}
           >
             <Text style={[styles.tabText, activeTab === "HISTORY" && styles.tabTextActive]}>
-              History ({historyList.length})
+              Riwayat Selesai ({historyList.length})
             </Text>
           </Pressable>
         </ScrollView>
@@ -227,13 +231,19 @@ export default function AdminOrdersScreen() {
           />
         }
       >
-        {displayedList.length === 0 ? (
+        {isRefreshing && displayedList.length === 0 ? (
+          <>
+            <SkeletonOrderCard />
+            <SkeletonOrderCard />
+            <SkeletonOrderCard />
+          </>
+        ) : displayedList.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconCircle}>
               <MaterialCommunityIcons name="check-all" size={44} color={colors.brandPrimary} />
             </View>
-            <Text style={styles.emptyTitle}>Queue is Clear</Text>
-            <Text style={styles.emptySubtitle}>No wholesale bookings currently in this operational stage.</Text>
+            <Text style={styles.emptyTitle}>Antrean Bersih</Text>
+            <Text style={styles.emptySubtitle}>Tidak ada pesanan grosir dalam tahapan operasional ini.</Text>
           </View>
         ) : (
           displayedList.map((booking) => (
@@ -246,6 +256,7 @@ export default function AdminOrdersScreen() {
               onVerifyPayment={verifyPayment}
               onMarkCompleted={markCompleted}
               onOpenChat={(b) => setSelectedChatBooking(b)}
+              onOpenEdit={(b) => setSelectedEditBooking(b)}
             />
           ))
         )}
@@ -320,6 +331,16 @@ export default function AdminOrdersScreen() {
         visible={!!selectedChatBooking}
         booking={selectedChatBooking}
         onClose={() => setSelectedChatBooking(null)}
+      />
+
+      {/* Agent Detail Edit Form Modal */}
+      <AgentDetailEditModal
+        visible={!!selectedEditBooking}
+        booking={selectedEditBooking}
+        onClose={() => setSelectedEditBooking(null)}
+        onSaved={() => {
+          refreshAllData().catch(() => {});
+        }}
       />
     </View>
   );

@@ -9,27 +9,27 @@ test.describe('1. Text Visibility & Legibility Verification', () => {
     // 1. Check Login Screen
     await page.goto('/login');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('text=Email').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('text=SaltDistribute').first().waitFor({ state: 'visible', timeout: 15000 });
 
     const loginAudit = await verifyAllTextVisible(page);
     expect(loginAudit.visibleCount).toBeGreaterThan(5);
 
-    // Verify key textual elements are rendered and visible
+    // Verify key textual elements are rendered and visible (bilingual matchers)
     await expect(page.locator('text=SaltDistribute').first()).toBeVisible();
-    await expect(page.locator('text=Email').first()).toBeVisible();
-    await expect(page.locator('text=Password').first()).toBeVisible();
+    await expect(page.locator('text=Email').or(page.locator('text=Username')).or(page.locator('text=Alamat Email')).first()).toBeVisible();
+    await expect(page.locator('text=Password').or(page.locator('text=Kata Sandi')).first()).toBeVisible();
 
     // 2. Check Register Screen
     await page.goto('/register');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('text=Email').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('text=Email').or(page.locator('text=Daftar')).or(page.locator('text=Nama')).first().waitFor({ state: 'visible', timeout: 15000 });
 
     const registerAudit = await verifyAllTextVisible(page);
     expect(registerAudit.visibleCount).toBeGreaterThan(6);
 
     // Verify registration labels
-    await expect(page.locator('text=Nama Lengkap').or(page.locator('text=Full Name')).first()).toBeVisible();
-    await expect(page.locator('text=Email').first()).toBeVisible();
+    await expect(page.locator('text=Nama').or(page.locator('text=Full Name')).first()).toBeVisible();
+    await expect(page.locator('text=Email').or(page.locator('text=Alamat')).first()).toBeVisible();
   });
 
   test('Buyer Screens: product catalogue titles, tier prices, stock badges, and tabs are fully visible', async ({

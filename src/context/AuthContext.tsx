@@ -134,8 +134,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Subscribe to Firestore users collection
     const unsub = subscribeToUsers((remoteUsers) => {
       if (remoteUsers && remoteUsers.length > 0) {
-        setAllUsers(remoteUsers);
-        AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(remoteUsers)).catch(() => {});
+        const merged = remoteUsers.map((ru) => {
+          const init = INITIAL_USERS.find(
+            (iu) => iu.userId === ru.userId || (ru.email && iu.email.toLowerCase() === ru.email.toLowerCase())
+          );
+          return {
+            ...init,
+            ...ru,
+            password: ru.password || init?.password,
+          };
+        });
+        setAllUsers(merged);
+        AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged)).catch(() => {});
       }
     });
 
@@ -146,8 +156,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const remoteUsers = await fetchUsersFromFirestore();
       if (remoteUsers && remoteUsers.length > 0) {
-        setAllUsers(remoteUsers);
-        await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(remoteUsers));
+        const merged = remoteUsers.map((ru) => {
+          const init = INITIAL_USERS.find(
+            (iu) => iu.userId === ru.userId || (ru.email && iu.email.toLowerCase() === ru.email.toLowerCase())
+          );
+          return {
+            ...init,
+            ...ru,
+            password: ru.password || init?.password,
+          };
+        });
+        setAllUsers(merged);
+        await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
       }
     } catch (err) {
       console.warn("[AuthContext] Refresh users warning:", err);
@@ -191,7 +211,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error("Invalid username/email or password.");
     }
 
-    if (user.password && user.password !== trimmedPass) {
+    const expectedPass =
+      user.password ||
+      INITIAL_USERS.find(
+        (iu) => iu.userId === user.userId || (user.email && iu.email.toLowerCase() === user.email.toLowerCase())
+      )?.password;
+
+    if (expectedPass && expectedPass !== trimmedPass) {
       throw new Error("Invalid username/email or password.");
     }
 

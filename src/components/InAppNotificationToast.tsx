@@ -9,14 +9,19 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useAuth } from "../context/AuthContext";
 import { colors, radius, spacing, type, shadows } from "../theme";
 import {
   subscribeInAppNotifications,
+  isTargetedForUser,
   AppNotificationPayload,
 } from "../services/notificationService";
 
 export default function InAppNotificationToast() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { currentUser } = useAuth();
   const [currentNotification, setCurrentNotification] =
     useState<AppNotificationPayload | null>(null);
   const translateY = useRef(new Animated.Value(-120)).current;
@@ -43,6 +48,11 @@ export default function InAppNotificationToast() {
   };
 
   const showToast = (notif: AppNotificationPayload) => {
+    // Targeted security verification: Only show to authorized recipient
+    if (!isTargetedForUser(notif, currentUser?.userId, currentUser?.role)) {
+      return;
+    }
+
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -85,6 +95,21 @@ export default function InAppNotificationToast() {
     });
   };
 
+  const handlePressToast = () => {
+    if (!currentNotification) return;
+    const notif = currentNotification;
+    dismissToast();
+
+    // Deep-linking navigation
+    if (notif.bookingId) {
+      if (currentUser?.role === "admin" || (currentUser?.role as string) === "seller") {
+        router.push("/(admin)/orders" as any);
+      } else {
+        router.push("/(buyer)/orders" as any);
+      }
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = subscribeInAppNotifications((payload) => {
       showToast(payload);
@@ -93,7 +118,7 @@ export default function InAppNotificationToast() {
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, []);
+  }, [currentUser?.userId, currentUser?.role]);
 
   if (!currentNotification) {
     return null;
@@ -115,9 +140,9 @@ export default function InAppNotificationToast() {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Tutup notifikasi"
+        accessibilityLabel={`Buka notifikasi: ${currentNotification.title}`}
         style={({ pressed }) => [styles.toastCard, pressed && { opacity: 0.95 }]}
-        onPress={dismissToast}
+        onPress={handlePressToast}
       >
         <View style={[styles.iconBox, { backgroundColor: bg }]}>
           <MaterialCommunityIcons name={icon} size={22} color={color} />

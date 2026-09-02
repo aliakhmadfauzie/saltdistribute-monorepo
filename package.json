@@ -12,6 +12,7 @@
     "build:web": "expo export --platform web",
     "build": "expo export --platform web",
     "lint": "expo lint",
+    "test": "jest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
@@ -52,10 +53,13 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@types/jest": "^30.0.0",
     "@types/react": "19.1.10",
     "eslint": "9.25.0",
     "eslint-config-expo": "10.0.0",
     "expo-doctor": "1.19.8",
+    "jest": "^30.5.0",
+    "ts-jest": "^29.4.12",
     "typescript": "5.9.3"
   },
   "resolutions": {

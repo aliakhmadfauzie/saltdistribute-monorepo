@@ -36,7 +36,7 @@ export default function AdminUsersScreen() {
     setIsRefreshing(false);
   };
 
-  const buyers = allUsers.filter((u) => u.role === "buyer");
+  const buyers = (allUsers || []).filter((u) => u && u.role === "buyer");
 
   const handleResetPassword = (email: string) => {
     Alert.alert("Password Reset", `A secure temporary reset link has been dispatched to ${email}.`);

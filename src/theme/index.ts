@@ -131,4 +131,58 @@ export const shadows = {
     shadowRadius: 16,
     elevation: 8,
   },
+  glow: {
+    shadowColor: "#006C4C",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
 } as const;
+
+// Glassmorphism tokens & presets
+export const glass = {
+  card: {
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
+    borderColor: "rgba(255, 255, 255, 0.95)",
+    borderWidth: 1,
+  },
+  cardEmerald: {
+    backgroundColor: "rgba(240, 253, 244, 0.85)",
+    borderColor: "rgba(137, 248, 199, 0.4)",
+    borderWidth: 1,
+  },
+  cardDark: {
+    backgroundColor: "rgba(27, 40, 32, 0.78)",
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+  },
+  modal: {
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderColor: "rgba(255, 255, 255, 0.8)",
+    borderWidth: 1,
+  },
+  highlightBorder: "rgba(255, 255, 255, 0.65)",
+  specularTop: "rgba(255, 255, 255, 0.85)",
+  blurIntensity: 20,
+} as const;
+
+// Micro-interaction animation configs
+export const animation = {
+  duration: {
+    instant: 100,
+    fast: 180,
+    normal: 260,
+    slow: 400,
+  },
+  spring: {
+    stiffness: 280,
+    damping: 22,
+    mass: 0.8,
+  },
+  scale: {
+    press: 0.965,
+    hover: 1.02,
+  },
+} as const;
+

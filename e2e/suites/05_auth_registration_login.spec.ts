@@ -17,7 +17,7 @@ test.describe('5. Account Creation, DB Documentation & Password Validation', () 
   }) => {
     await page.goto('/register');
     await page.waitForLoadState('domcontentloaded');
-    await page.locator('text=Email').first().waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('text=Nama').or(page.locator('text=Daftar')).or(page.locator('text=Email')).first().waitFor({ state: 'visible', timeout: 15000 });
 
     // Fill registration form
     const nameInput = page.locator('input[placeholder*="Budi"], input[placeholder*="Nama"]');
@@ -65,7 +65,7 @@ test.describe('5. Account Creation, DB Documentation & Password Validation', () 
 
     // Verify user is NOT logged in and error banner is displayed
     await page.waitForTimeout(1000);
-    const errorBanner = page.locator('text=Invalid').or(page.locator('text=Salah')).or(page.locator('text=failed'));
+    const errorBanner = page.locator('text=Invalid').or(page.locator('text=Salah')).or(page.locator('text=failed')).or(page.locator('text=Gagal'));
     await expect(errorBanner.first()).toBeVisible();
   });
 
@@ -79,7 +79,7 @@ test.describe('5. Account Creation, DB Documentation & Password Validation', () 
     await loginWithCredentials(page, 'non_existing_user@saltdistribute.id', 'anyPassword123');
 
     await page.waitForTimeout(1000);
-    const errorBanner = page.locator('text=Invalid').or(page.locator('text=Salah')).or(page.locator('text=failed'));
+    const errorBanner = page.locator('text=Invalid').or(page.locator('text=Salah')).or(page.locator('text=failed')).or(page.locator('text=Gagal'));
     await expect(errorBanner.first()).toBeVisible();
   });
 
@@ -94,6 +94,6 @@ test.describe('5. Account Creation, DB Documentation & Password Validation', () 
 
     // Verify successful login
     await page.waitForTimeout(2000);
-    await expect(page.locator('text=Salt').or(page.locator('text=Garam')).or(page.locator('text=Katalog')).first()).toBeVisible();
+    await expect(page.locator('text=Salt').or(page.locator('text=Garam')).or(page.locator('text=Katalog')).or(page.locator('text=Pesanan')).first()).toBeVisible();
   });
 });

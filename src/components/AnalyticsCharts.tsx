@@ -81,22 +81,25 @@ export const RevenueTrendChart: React.FC<{ data: RevenueTrendPoint[] }> = ({ dat
   );
 };
 
-export const TierBreakdownChart: React.FC<{ bookings: Booking[]; tiers: UnitTier[] }> = ({
-  bookings,
-  tiers,
+export const TierBreakdownChart: React.FC<{ bookings?: Booking[]; tiers?: UnitTier[] }> = ({
+  bookings = [],
+  tiers = [],
 }) => {
   const { t } = useI18n();
 
+  const safeBookings = bookings || [];
+  const safeTiers = tiers || [];
+
   // Aggregate by package label
-  const tierStats = tiers.map((tier) => {
-    const matchingBookings = bookings.filter(
+  const tierStats = safeTiers.map((tier) => {
+    const matchingBookings = safeBookings.filter(
       (b) =>
-        b.packageLabel.toLowerCase().includes(tier.label.toLowerCase()) ||
-        b.quantityGram === tier.quantityGram
+        (b.packageLabel && tier?.label && b.packageLabel.toLowerCase().includes(tier.label.toLowerCase())) ||
+        b.quantityGram === tier?.quantityGram
     );
     const orderCount = matchingBookings.length;
-    const totalVolume = matchingBookings.reduce((sum, b) => sum + b.quantityGram, 0);
-    const totalRevenue = matchingBookings.reduce((sum, b) => sum + b.grandTotal, 0);
+    const totalVolume = matchingBookings.reduce((sum, b) => sum + (b.quantityGram || 0), 0);
+    const totalRevenue = matchingBookings.reduce((sum, b) => sum + (b.grandTotal || 0), 0);
     return {
       tier,
       orderCount,
@@ -171,17 +174,20 @@ export const TierBreakdownChart: React.FC<{ bookings: Booking[]; tiers: UnitTier
 };
 
 export const InventoryRunwayGauge: React.FC<{
-  inventory: Inventory;
-  completedBookings: Booking[];
-}> = ({ inventory, completedBookings }) => {
+  inventory?: Inventory;
+  completedBookings?: Booking[];
+}> = ({ inventory, completedBookings = [] }) => {
   const { t } = useI18n();
 
+  const safeCompleted = completedBookings || [];
+  const availableQty = inventory?.availableQuantityGram || 0;
+
   // Daily burn rate calculation (last 7 days completed orders volume)
-  const totalVolumeSold = completedBookings.reduce((sum, b) => sum + b.quantityGram, 0);
+  const totalVolumeSold = safeCompleted.reduce((sum, b) => sum + (b.quantityGram || 0), 0);
   const avgDailyBurn = Math.max(10, Math.round(totalVolumeSold / 7));
-  const daysRunway = Math.round(inventory.availableQuantityGram / avgDailyBurn);
+  const daysRunway = Math.round(availableQty / avgDailyBurn);
   const safetyStockThreshold = 50; // 50g safety reserve
-  const isBelowSafety = inventory.availableQuantityGram < safetyStockThreshold;
+  const isBelowSafety = availableQty < safetyStockThreshold;
 
   return (
     <View style={styles.chartCard}>
@@ -234,15 +240,16 @@ export const InventoryRunwayGauge: React.FC<{
   );
 };
 
-export const DeliveryMixChart: React.FC<{ bookings: Booking[] }> = ({ bookings }) => {
+export const DeliveryMixChart: React.FC<{ bookings?: Booking[] }> = ({ bookings = [] }) => {
   const { t } = useI18n();
 
-  const codBookings = bookings.filter((b) => b.deliveryType === "COD");
-  const directBookings = bookings.filter((b) => b.deliveryType === "DELIVERY");
+  const safeBookings = bookings || [];
+  const codBookings = safeBookings.filter((b) => b.deliveryType === "COD");
+  const directBookings = safeBookings.filter((b) => b.deliveryType === "DELIVERY");
 
   const codCount = codBookings.length;
   const directCount = directBookings.length;
-  const totalCount = bookings.length || 1;
+  const totalCount = safeBookings.length || 1;
 
   const codPercent = Math.round((codCount / totalCount) * 100);
   const directPercent = Math.round((directCount / totalCount) * 100);

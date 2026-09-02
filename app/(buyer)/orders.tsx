@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { colors, radius, spacing, type, shadows, touchTarget, layout } from "../../src/theme";
+import { colors, radius, spacing, type, shadows, touchTarget, layout, glass } from "../../src/theme";
 import { useApp, useAuth } from "../../src/api";
 import { useI18n } from "../../src/i18n";
 import BookingCard from "../../src/components/BookingCard";
@@ -14,6 +14,8 @@ import ChatModal from "../../src/components/ChatModal";
 import LangToggle from "../../src/components/LangToggle";
 import AppLogo from "../../src/components/AppLogo";
 import NotificationButton from "../../src/components/NotificationButton";
+import InteractivePressable from "../../src/components/InteractivePressable";
+import { SkeletonOrderCard } from "../../src/components/SkeletonLoader";
 import { Booking } from "../../src/types";
 import { getDeviceCurrentLocation } from "../../src/services/locationService";
 
@@ -64,10 +66,10 @@ export default function BuyerOrdersScreen() {
         const loc = await getDeviceCurrentLocation();
         if (loc) {
           await updateBuyerLiveLocation(primaryActiveBooking.bookingId, loc);
-          Alert.alert("GPS Active", "Your device location is now live and visible to the dispatcher.");
+          Alert.alert("GPS Aktif", "Lokasi perangkat Anda kini aktif dan dapat dipantau oleh pengirim/penjual.");
         }
       } catch (err: any) {
-        Alert.alert("Location Error", err?.message || "Failed to acquire device location.");
+        Alert.alert("Kendala Lokasi", err?.message || "Gagal memperoleh lokasi perangkat.");
       } finally {
         setIsCapturingLocation(false);
       }
@@ -90,10 +92,10 @@ export default function BuyerOrdersScreen() {
           </View>
           <View style={styles.headerRightActions}>
             <NotificationButton />
-            <Pressable
+            <InteractivePressable
               accessibilityRole="button"
               accessibilityLabel="Refresh status pesanan dari cloud"
-              style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.8 }]}
+              style={styles.refreshBtn}
               onPress={() => refreshAllData()}
               disabled={isRefreshing}
             >
@@ -103,7 +105,7 @@ export default function BuyerOrdersScreen() {
                 <Ionicons name="refresh" size={14} color={colors.onBrandPrimary} />
               )}
               <Text style={styles.refreshBtnText}>{isRefreshing ? "..." : "Refresh"}</Text>
-            </Pressable>
+            </InteractivePressable>
             <LangToggle />
           </View>
         </View>
@@ -180,14 +182,21 @@ export default function BuyerOrdersScreen() {
               <View style={styles.gpsActiveBadge}>
                 <View style={styles.pulseDot} />
                 <Text style={styles.gpsActiveText}>
-                  {t("locationGranted")} &bull; ±{primaryActiveBooking.liveLocation.accuracyMeters}m accuracy
+                  {t("locationGranted")} &bull; ±{primaryActiveBooking.liveLocation.accuracyMeters}m akurasi
                 </Text>
               </View>
             ) : null}
           </View>
         )}
 
-        {displayedList.length === 0 ? (
+        {/* Loading Skeletons when fetching initial data */}
+        {isRefreshing && displayedList.length === 0 ? (
+          <>
+            <SkeletonOrderCard />
+            <SkeletonOrderCard />
+            <SkeletonOrderCard />
+          </>
+        ) : displayedList.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconCircle}>
               <MaterialCommunityIcons name="clipboard-text-outline" size={44} color={colors.brandPrimary} />
@@ -195,19 +204,19 @@ export default function BuyerOrdersScreen() {
             <Text style={styles.emptyTitle}>{t("noOrders")}</Text>
             <Text style={styles.emptySubtitle}>
               {activeTab === "ACTIVE"
-                ? "You have no active orders in dispatch right now."
-                : "No completed or cancelled orders in your history."}
+                ? "Belum ada pesanan aktif yang sedang diproses saat ini."
+                : "Belum ada riwayat pesanan selesai atau dibatalkan."}
             </Text>
 
-            <Pressable
+            <InteractivePressable
               accessibilityRole="button"
               accessibilityLabel="Pesan Garam Sekarang"
-              style={({ pressed }) => [styles.emptyCta, pressed && { opacity: 0.85 }]}
+              style={styles.emptyCta}
               onPress={() => router.push("/(buyer)")}
             >
               <MaterialCommunityIcons name="cart-plus" size={20} color={colors.onBrandPrimary} />
-              <Text style={styles.emptyCtaText}>Browse Salt Catalog</Text>
-            </Pressable>
+              <Text style={styles.emptyCtaText}>Buka Katalog Garam</Text>
+            </InteractivePressable>
           </View>
         ) : (
           displayedList.map((booking) => (
@@ -239,6 +248,7 @@ export default function BuyerOrdersScreen() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
@@ -288,13 +298,13 @@ const styles = StyleSheet.create({
   },
   tabBtn: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: radius.pill,
   },
   tabBtnActive: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surfaceContainerLowest,
     ...shadows.sm,
   },
   tabText: {
@@ -312,9 +322,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   emptyCard: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surfaceContainerLowest,
     padding: spacing.xxl,
-    borderRadius: radius.md,
+    borderRadius: radius.xl,
     alignItems: "center",
     gap: spacing.sm,
     borderWidth: 1,
@@ -360,8 +370,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   gpsCard: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1.5,
     borderColor: colors.brandPrimaryContainer,

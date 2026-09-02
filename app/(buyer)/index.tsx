@@ -55,7 +55,7 @@ export default function BuyerDashboardScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const router = useRouter();
-  const { inventory, createBooking, bookings, isRefreshing, refreshAllData, uploadPaymentProof } = useApp();
+  const { inventory, createBooking, bookings, isRefreshing, refreshAllData, uploadPaymentProof, sendMessage } = useApp();
   const { currentUser, switchUser, logout } = useAuth();
   const { t } = useI18n();
 
@@ -239,19 +239,19 @@ export default function BuyerDashboardScreen() {
   const handleSubmitOrder = async () => {
     if (!currentUser) return;
     if (effectiveGrams <= 0) {
-      Alert.alert("Invalid Quantity", "Please specify a quantity greater than 0.");
+      Alert.alert("Jumlah Tidak Valid", "Mohon tentukan jumlah pesanan lebih dari 0 gram.");
       return;
     }
     if (effectiveGrams > MAX_GRAM_LIMIT) {
-      Alert.alert("Limit Exceeded", `Maximum purchase limit is ${MAX_GRAM_LIMIT} grams per order.`);
+      Alert.alert("Batas Maksimal Terlampaui", `Batas maksimal pembelian adalah ${MAX_GRAM_LIMIT} gram per pesanan.`);
       return;
     }
     if (!isStockAvailable) {
-      Alert.alert("Out of Stock", "The requested quantity exceeds our current warehouse inventory.");
+      Alert.alert("Stok Tidak Mencukupi", "Jumlah pesanan melebihi stok yang tersedia di gudang saat ini.");
       return;
     }
     if (deliveryType === "DELIVERY" && !address.trim()) {
-      Alert.alert("Address Required", "Please specify your delivery address.");
+      Alert.alert("Alamat Wajib Diisi", "Mohon tentukan alamat lengkap untuk pengantaran pesanan Anda.");
       return;
     }
 
@@ -267,7 +267,7 @@ export default function BuyerDashboardScreen() {
         ? selectedTier
         : {
             id: `custom_${Date.now()}`,
-            name: purchaseMode === "BY_BUDGET" ? "Custom Budget Package" : "Custom Gram Package",
+            name: purchaseMode === "BY_BUDGET" ? "Paket Sesuai Budget" : "Paket Per Gram",
             quantityGram: effectiveGrams,
             label: packageLabel,
             discountPercent: 0,
@@ -304,8 +304,18 @@ export default function BuyerDashboardScreen() {
         notes: notes.trim() || undefined,
       });
 
+      // Automatically attach initial structured order breakdown message into chat
+      sendMessage(
+        newBooking.bookingId,
+        currentUser.userId,
+        currentUser.name,
+        "buyer",
+        `📦 [Pesanan Masuk] ${packageLabel} (${deliveryType === "COD" ? "Titik Temu COD" : "Pengantaran Langsung"}) • Total: ${formatIDR(grandTotal)}`
+      );
+
       setCreatedBookingId(newBooking.bookingId);
-      setSubmissionState("success");
+      setSelectedChatBooking(newBooking);
+      setSubmissionState("idle");
     } catch (e: any) {
       setSubmissionErrorMessage(e?.message || "Gagal membuat pesanan. Silakan periksa koneksi Anda dan coba lagi.");
       setSubmissionState("failed");
@@ -1748,6 +1758,10 @@ export default function BuyerDashboardScreen() {
       <GuestOrderModal
         visible={isGuestModalVisible}
         onClose={() => setIsGuestModalVisible(false)}
+        onOrderCreatedAndOpenChat={(booking) => {
+          setSelectedChatBooking(booking);
+          setIsGuestModalVisible(false);
+        }}
       />
 
       {/* Payment Proof Upload Modal */}
