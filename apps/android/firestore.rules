@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        (request.auth.token.email == 'admin@saltdistribute.id' && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- 1. Inventory Collection ---
+    // Public catalog inspection and real-time stock deduction
+    match /inventory/{docId} {
+      allow read, write: if true;
+    }
+
+    // --- 2. Store Settings & Meeting Points ---
+    match /store_settings/{docId} {
+      allow read, write: if true;
+    }
+
+    match /meeting_points/{docId} {
+      allow read, write: if true;
+    }
+
+    // --- 3. Bookings Collection ---
+    // Seamless creation and updates for member and guest orders
+    match /bookings/{bookingId} {
+      allow read, write: if true;
+    }
+
+    // --- 4. Chat Messages Subcollection ---
+    // Real-time communication channel per booking
+    match /chats/{bookingId}/messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    // --- 5. Users Collection ---
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // --- 6. Device Tokens Collection ---
+    match /device_tokens/{tokenId} {
+      allow read, write: if true;
+    }
+
+    // --- 7. Notifications Collection ---
+    match /notifications/{notifId} {
+      allow read, write: if true;
+    }
+  }
+}
