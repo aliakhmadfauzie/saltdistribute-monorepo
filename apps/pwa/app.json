@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "SaltDistribute - Platform Distribusi Garam Industri & Grosir",
+    "slug": "saltdistribute-pwa",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "saltdistribute",
+    "userInterfaceStyle": "automatic",
+    "web": {
+      "name": "SaltDistribute - Platform Distribusi Garam Industri & Grosir",
+      "shortName": "SaltDistribute",
+      "description": "B2B Wholesale Salt Order Management & Delivery System",
+      "themeColor": "#006C4C",
+      "backgroundColor": "#F8FAF9",
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./public/favicon.ico"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

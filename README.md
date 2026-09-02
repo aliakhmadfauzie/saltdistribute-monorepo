@@ -1,55 +1,77 @@
-# SaltDistribute — Mobile-First B2B Order Management Platform
+# SaltDistribute — Multi-Platform B2B Order & Inventory Management Platform
 
 [![Expo SDK](https://img.shields.io/badge/Expo-54-000000.svg)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB.svg)](https://reactnative.dev)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-006C4C.svg)](https://saltdistribute-2026.web.app)
+[![Android](https://img.shields.io/badge/Android-APK%2FAAB-3DDC84.svg)](https://developer.android.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6.svg)](https://www.typescriptlang.org)
 
-**SaltDistribute** is an industrial-grade, mobile-first B2B order & inventory management platform for bulk salt distribution. It connects business owners with wholesale buyers through real-time stock visibility, dynamic volume discounts, order tracking with payment receipt verification, restock cost auditing (COGS & Profit), in-app chat, and 1-click WhatsApp deep linking.
+**SaltDistribute** is an industrial-grade B2B order & inventory management platform for bulk salt distribution. The repository is structured into two specialized application targets sharing a core business and design engine:
+1. **PWA (Progressive Web App)**: Web & desktop/mobile browser-optimized with Service Worker, Web Manifest, offline support, and Firebase Hosting deployment.
+2. **Android (Mobile App)**: Dedicated mobile application targeting Android (React Native / Expo SDK 54, Edge-to-Edge Material 3, Android APK/AAB build pipeline).
 
 ---
 
-## Features
+## 📁 Repository Structure
 
-- **Role-Based Workflows**: Pre-configured for **Admin** (`admin@saltdistribute.id` / `admin123`) and **Buyer** (`buyer@saltdistribute.id` / `buyer123`).
-- **Dynamic Tiered Pricing**: Automated discount calculations on 100g, 500g, 1 kg, 0.5 Ton, 1.0 Ton, and 1.2 Ton packages.
-- **Fulfillment Selector**: Direct Delivery with zone fees vs Self Pickup (COD).
-- **Multi-Stage Stepper**: `Placed` $\rightarrow$ `Admin Confirmed` $\rightarrow$ `Proof Paid` $\rightarrow$ `Delivering` $\rightarrow$ `Completed`.
-- **Payment Receipt Upload**: Simulated bank receipt capture with preview and admin approval controls.
-- **Executive Analytics**: Gross Profit and COGS calculations based on inbound supplier restock batches.
-- **Bilingual Localization**: Instant English (🇬🇧) and Bahasa Indonesia (🇮🇩) toggling.
-- **1-Click WhatsApp Support**: Deep linking with pre-filled booking ID message templates.
-
----
-
-## Quick Start
-
-### 1. Frontend (Expo / React Native Web)
-
-```bash
-# Install dependencies
-npm install
-
-# Start local web development server (Port 8081)
-npm run web
-
-# Build static production bundle
-npx expo export --platform web
 ```
-
-### 2. Backend (FastAPI)
-
-```bash
-# Install backend requirements
-pip install -r requirements.txt
-
-# Start FastAPI server (Port 8000)
-python -m uvicorn backend.main:app --reload --port 8000
+├── apps/
+│   ├── android/                  # 📱 Dedicated Android Mobile Application
+│   │   ├── app/                  # Android mobile screens & navigation
+│   │   ├── assets/               # Android adaptive icons, splash & images
+│   │   ├── app.json              # Android Expo configuration (package: com.emergent.saltdistribute.rydu7m)
+│   │   ├── tsconfig.json
+│   │   └── package.json          # Android build scripts & dependencies
+│   │
+│   └── pwa/                      # 🌐 Dedicated Progressive Web App (PWA)
+│       ├── app/                  # PWA views, routes & components (+html.tsx)
+│       ├── public/               # manifest.json, service-worker.js, favicons, PWA icons
+│       ├── app.json              # PWA Web configuration (single output, theme #006C4C)
+│       ├── tsconfig.json
+│       └── package.json          # PWA build scripts & Firebase deploy
+│
+├── shared/                       # 🧩 Shared Core Business Logic & Theme
+│   ├── services/                 # Firestore, Firebase Auth, Storage, Notifications
+│   ├── context/                  # AppContext, AuthContext, State Management
+│   ├── types/                    # TypeScript interfaces & booking/inventory contracts
+│   ├── theme/                    # Material 3 Emerald design tokens
+│   ├── i18n/                     # Bilingual dictionaries (id & en)
+│   └── components/               # Shared cross-platform UI components
+│
+├── firebase.json                 # Firebase Hosting & Database deployment rules
+├── firestore.rules               # Security rules for Firestore
+├── storage.rules                 # Storage access rules
+└── package.json                  # Root workspace orchestrator
 ```
 
 ---
 
-## Demo Accounts
+## 🚀 Quick Start
+
+### Running PWA (Web)
+```bash
+# Start local PWA dev server
+npm run pwa:dev
+
+# Build static PWA bundle
+npm run pwa:build
+
+# Deploy PWA to Firebase Hosting
+npm run pwa:deploy
+```
+
+### Running Android (Mobile)
+```bash
+# Start Android dev server on connected device or emulator
+npm run android:dev
+
+# Build Android APK preview
+npm run android:build
+```
+
+---
+
+## 👥 Demo Accounts
 
 | Role | Email | Password | Access |
 | :--- | :--- | :--- | :--- |
@@ -58,23 +80,9 @@ python -m uvicorn backend.main:app --reload --port 8000
 
 ---
 
-## Project Structure
+## 🛡️ Core Architectural Principles
 
-```
-├── app/                          # Expo Router file-based screens
-│   ├── (auth)/                   # Login & Registration
-│   ├── (buyer)/                  # Catalog, Orders, Profile
-│   └── (admin)/                  # Dashboard, Pipeline, Inventory, Users
-├── src/
-│   ├── api/                      # Context exports & IDR/Gram formatting utilities
-│   ├── components/               # StockBanner, TierSelector, BookingCard, Modals, Chat
-│   ├── context/                  # AuthContext & AppContext (reactive persistent state)
-│   ├── i18n/                     # English & Bahasa Indonesia dictionaries
-│   ├── theme/                    # Material 3 Emerald & Ceramic Slate tokens
-│   └── types/                    # Domain TypeScript models
-├── backend/                      # FastAPI backend application
-│   ├── main.py                   # API routes & in-memory state
-│   ├── models.py                 # Pydantic schemas
-│   └── database.py               # Database connector
-└── assets/                       # PWA icons and splash screens
-```
+- **Zero-Polling Real-Time Sync**: Driven by Cloud Firestore `onSnapshot` listeners with deterministic cleanup.
+- **Role Perspective UI**: Context-aware headers, status banners, and chat alignments for Admin vs Buyer.
+- **Material 3 Emerald Tokens**: Standardized color palette (`#006C4C`), elevation, typography, and minimum 48dp touch targets.
+- **Client-Side Image Compression**: Optimizes receipt photos before Firebase Storage upload.
