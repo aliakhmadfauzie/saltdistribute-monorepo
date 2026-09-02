@@ -39,7 +39,7 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [guestModalOpen, setGuestModalOpen] = useState(false);
-  const [routingModalVisible, setRoutingModalVisible] = useState(false);
+  const [routingModalVisible, setRoutingModalVisible] = useState(true);
   const [isGuestChatOpen, setIsGuestChatOpen] = useState(false);
 
   const isBuyerDemoActive = email.trim() === "buyer@saltdistribute.id";
